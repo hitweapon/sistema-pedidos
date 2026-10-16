@@ -2,141 +2,104 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Histórico • {{ nome_estabelecimento }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+    .filters label{display:block;margin-bottom:6px;font-weight:700}
+    .filters input,.filters select{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px}
+    .product-picker{grid-column:1/-1;border:1px solid rgba(120,120,120,.25);border-radius:12px;padding:12px}
+    .product-picker select{min-height:130px}
+    .hint{font-size:13px;opacity:.75;margin-top:6px}
+    .report-table{width:100%;border-collapse:collapse;margin-top:10px}
+    .report-table th,.report-table td{text-align:left;padding:10px;border-bottom:1px solid rgba(120,120,120,.2)}
+    .report-table th:last-child,.report-table td:last-child{text-align:right}
+    .report-wrap{overflow-x:auto}
+    .report-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:12px}
+    .report-kpi{padding:14px;border:1px solid rgba(120,120,120,.2);border-radius:12px}
+    .report-kpi strong{display:block;font-size:21px;margin-top:5px}
+    .ticket-itens{line-height:1.55}
+    @media(max-width:650px){.topbar-inner{gap:12px}.kpi{flex-wrap:wrap}.report-table th,.report-table td{padding:8px 6px}}
+  </style>
 </head>
 <body>
-
 <button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
-
-<div class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <div class="brand-icon">🗂️</div>
-      <div>
-        <div class="brand-title">Histórico (até 3 meses)</div>
-        <div class="brand-sub">{{ nome_estabelecimento }}</div>
-      </div>
-    </div>
-
-    <div class="kpi">
-      <div class="kpi-card">
-        <div class="kpi-label">Total período</div>
-        <div class="kpi-value">R$ {{ "%.2f"|format(total_periodo) }}</div>
-      </div>
-
-      <a class="kpi-card" href="/caixa" style="text-decoration:none; color:inherit;">
-        <div class="kpi-label">Voltar</div>
-        <div class="kpi-value">↩️ Caixa</div>
-      </a>
-
-      <!-- LIMPAR HISTÓRICO -->
-      <form action="/historico/limpar" method="POST"
-            onsubmit="return confirm('Apagar TODO o histórico?');"
-            style="margin:0;">
-        <button class="danger" type="submit" style="height:56px;">
-          🧹 Limpar
-        </button>
-      </form>
-    </div>
+<div class="topbar"><div class="topbar-inner">
+  <div class="brand"><div class="brand-icon">🗂️</div><div><div class="brand-title">Histórico e vendas</div><div class="brand-sub">{{ nome_estabelecimento }}</div></div></div>
+  <div class="kpi">
+    <div class="kpi-card"><div class="kpi-label">Total vendido no período</div><div class="kpi-value">R$ {{ "%.2f"|format(total_periodo) }}</div></div>
+    <a class="kpi-card" href="/caixa" style="text-decoration:none;color:inherit"><div class="kpi-label">Voltar</div><div class="kpi-value">↩️ Caixa</div></a>
+    <form action="/historico/limpar" method="POST" onsubmit="return confirm('Apagar TODO o histórico? Esta ação não pode ser desfeita.')" style="margin:0"><button class="danger" type="submit" style="height:56px">🧹 Limpar</button></form>
   </div>
-</div>
-
+</div></div>
 <div class="container">
-
   <div class="card">
-    <form method="GET" style="display:grid; grid-template-columns: 1fr 180px 180px 140px; gap:10px; align-items:end;">
-      <div>
-        <label>Buscar (nome, tel, endereço, obs)</label>
-        <input type="text" name="q" value="{{ q }}" placeholder="Ex: Maria, 19..., Rua...">
-      </div>
-
-      <div>
-        <label>Canal</label>
-        <select name="canal" style="width:100%; padding:10px 12px; border-radius:12px;">
-          <option value="TODOS" {% if canal=="TODOS" %}selected{% endif %}>Todos</option>
-          <option value="BALCAO" {% if canal=="BALCAO" %}selected{% endif %}>Balcão</option>
-          <option value="DELIVERY" {% if canal=="DELIVERY" %}selected{% endif %}>Delivery</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Status</label>
-        <select name="status" style="width:100%; padding:10px 12px; border-radius:12px;">
-          <option value="TODOS" {% if status=="TODOS" %}selected{% endif %}>Todos</option>
-          <option value="AGUARDANDO_CAIXA" {% if status=="AGUARDANDO_CAIXA" %}selected{% endif %}>Aguardando</option>
-          <option value="PENDENTE" {% if status=="PENDENTE" %}selected{% endif %}>Cozinha</option>
-          <option value="PRONTO" {% if status=="PRONTO" %}selected{% endif %}>Pronto</option>
-          <option value="FECHADO" {% if status=="FECHADO" %}selected{% endif %}>Fechado</option>
-          <option value="CANCELADO" {% if status=="CANCELADO" %}selected{% endif %}>Cancelado</option>
-        </select>
-      </div>
-
-      <button class="btn btn-primary" type="submit">🔎 Filtrar</button>
+    <h2 style="margin-top:0">📊 Consultar vendas</h2>
+    <p style="opacity:.8;margin-top:0">Selecione uma data, mês, ano ou intervalo. O resumo soma a quantidade de cada produto nos pedidos do período.</p>
+    <form method="GET" class="filters" id="filtersForm">
+      <div><label for="periodo">Tipo de período</label><select name="periodo" id="periodo">
+        <option value="todos" {% if periodo == "todos" %}selected{% endif %}>Todo o histórico</option>
+        <option value="dia" {% if periodo == "dia" %}selected{% endif %}>Por dia</option>
+        <option value="mes" {% if periodo == "mes" %}selected{% endif %}>Por mês</option>
+        <option value="ano" {% if periodo == "ano" %}selected{% endif %}>Por ano</option>
+        <option value="intervalo" {% if periodo == "intervalo" %}selected{% endif %}>Período personalizado</option>
+      </select></div>
+      <div id="dayField"><label for="data">Data</label><input type="date" name="data" id="data" value="{{ data_filtro }}"></div>
+      <div id="monthField"><label for="mes">Mês</label><input type="month" name="mes" id="mes" value="{{ mes_filtro }}"></div>
+      <div id="yearField"><label for="ano">Ano</label><input type="number" name="ano" id="ano" min="2000" max="2100" value="{{ ano_filtro }}"></div>
+      <div id="startField"><label for="data_inicio">Data inicial</label><input type="date" name="data_inicio" id="data_inicio" value="{{ data_inicio }}"></div>
+      <div id="endField"><label for="data_fim">Data final</label><input type="date" name="data_fim" id="data_fim" value="{{ data_fim }}"></div>
+      <div><label for="canal">Canal</label><select name="canal" id="canal"><option value="TODOS" {% if canal=="TODOS" %}selected{% endif %}>Todos</option><option value="BALCAO" {% if canal=="BALCAO" %}selected{% endif %}>Balcão</option><option value="DELIVERY" {% if canal=="DELIVERY" %}selected{% endif %}>Delivery</option></select></div>
+      <div><label for="status">Status do pedido</label><select name="status" id="status">
+        <option value="TODOS" {% if status=="TODOS" %}selected{% endif %}>Todos</option><option value="AGUARDANDO_CAIXA" {% if status=="AGUARDANDO_CAIXA" %}selected{% endif %}>Aguardando caixa</option><option value="PENDENTE" {% if status=="PENDENTE" %}selected{% endif %}>Na cozinha</option><option value="PRONTO" {% if status=="PRONTO" %}selected{% endif %}>Pronto</option><option value="FECHADO" {% if status=="FECHADO" %}selected{% endif %}>Fechado</option><option value="CANCELADO" {% if status=="CANCELADO" %}selected{% endif %}>Cancelado</option>
+      </select></div>
+      <div><label for="q">Buscar pedido/cliente</label><input type="text" name="q" id="q" value="{{ q }}" placeholder="Nome, telefone, endereço..."></div>
+      <div class="product-picker"><label for="produtos">Produtos para analisar</label><select name="produtos" id="produtos" multiple>
+        {% for produto in produtos_filtro %}<option value="{{ produto.nome }}" {% if produto.nome in produtos_selecionados %}selected{% endif %}>{{ produto.nome }}</option>{% endfor %}
+      </select><div class="hint">Selecione um ou mais produtos com Ctrl (Windows) ou ⌘ (Mac). Deixe todos desmarcados para incluir todos os produtos.</div></div>
+      <div><button class="btn btn-primary" type="submit">🔎 Aplicar filtros</button></div>
+      <div><a class="btn btn-ghost" href="/historico" style="display:inline-block;text-decoration:none;padding:11px 14px">Limpar filtros</a></div>
     </form>
-
-    <div style="opacity:.7; margin-top:10px; font-size:13px;">
-      Dica: use “Buscar” para achar rápido por nome, telefone, rua ou observação.
+    {% if erro_periodo %}<p style="color:#b42318;font-weight:700">{{ erro_periodo }}</p>{% endif %}
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h2 style="margin-top:0">📦 Resumo de saída por produto</h2>
+    <div class="report-kpis">
+      <div class="report-kpi"><span>Unidades/itens vendidos</span><strong>{{ total_unidades }}</strong></div>
+      <div class="report-kpi"><span>Produtos diferentes</span><strong>{{ resumo_produtos|length }}</strong></div>
+      <div class="report-kpi"><span>Faturamento de pedidos concluídos</span><strong>R$ {{ "%.2f"|format(total_periodo) }}</strong></div>
+    </div>
+    <div class="report-wrap"><table class="report-table"><thead><tr><th>Produto</th><th>Quantidade</th><th>Valor dos itens</th></tr></thead><tbody>
+      {% for item in resumo_produtos %}<tr><td>{{ item.nome }}</td><td>{{ item.quantidade }}</td><td>R$ {{ "%.2f"|format(item.valor or 0) }}</td></tr>
+      {% else %}<tr><td colspan="3">Nenhuma venda encontrada para os filtros selecionados.</td></tr>{% endfor %}
+    </tbody></table></div>
+    <div class="hint">Itens pesáveis contam como uma ocorrência porque o banco atual guarda o valor, mas não o peso em uma coluna de quantidade.</div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h2 style="margin-top:0">🧾 Pedidos no período</h2>
+    {% if pedidos|length == 0 %}<div class="empty-state"><div class="empty-emoji">📦</div><h3>Nenhum pedido encontrado</h3><p>Tente outro período ou ajuste os filtros.</p></div>{% endif %}
+    <div class="kitchen-grid">
+      {% for p in pedidos %}<div class="ticket">
+        <div class="ticket-head"><div><div class="ticket-id">Pedido #{{ p.id }}</div><div class="ticket-badge">{{ p.status }} • {{ p.turno }} • {{ p.canal }}</div></div>
+          <div style="text-align:right"><div style="font-weight:900">R$ {{ "%.2f"|format(p.total or 0) }}</div><form action="/historico/remover/{{ p.id }}" method="POST" onsubmit="return confirm('Remover este pedido do histórico?')" style="margin-top:8px"><button class="btn btn-ghost" type="submit" style="padding:8px 10px">🗑️ Remover</button></form></div>
+        </div>
+        <div class="ticket-body"><div class="ticket-title">Dados</div><div style="line-height:1.45">
+          <b>Data:</b> {{ p.criado_em }}<br>{% if p.cliente_nome %}<b>Cliente:</b> {{ p.cliente_nome }}<br>{% endif %}{% if p.cliente_tel %}<b>Telefone:</b> {{ p.cliente_tel }}<br>{% endif %}{% if p.endereco %}<b>Endereço:</b> {{ p.endereco }}<br>{% endif %}{% if p.observacoes %}<b>Observações:</b> {{ p.observacoes }}<br>{% endif %}
+        </div><div style="margin-top:12px" class="ticket-title">Itens</div><div class="ticket-itens">
+          {% for it in pedido_itens[p.id] %}• {{ it.nome }} x{{ it.quantidade }} (R$ {{ "%.2f"|format(it.subtotal or it.pesado_valor or 0) }})<br>{% endfor %}
+        </div></div>
+      </div>{% endfor %}
     </div>
   </div>
-
-  <div style="height:14px;"></div>
-
-  {% if pedidos|length == 0 %}
-    <div class="empty-state">
-      <div class="empty-emoji">📦</div>
-      <h2>Nada encontrado</h2>
-      <p>Tente mudar o filtro ou a busca.</p>
-    </div>
-  {% endif %}
-
-  <div class="kitchen-grid">
-    {% for p in pedidos %}
-      <div class="ticket">
-        <div class="ticket-head">
-          <div>
-            <div class="ticket-id">Pedido #{{ p.id }}</div>
-            <div class="ticket-badge">{{ p.status }} • {{ p.turno }} • {{ p.canal }}</div>
-          </div>
-
-          <div style="text-align:right;">
-            <div style="font-weight:900;">
-              R$ {{ "%.2f"|format(p.total or 0) }}
-            </div>
-
-            <!-- REMOVER DO HISTÓRICO -->
-            <form action="/historico/remover/{{ p.id }}" method="POST"
-                  onsubmit="return confirm('Remover este pedido do histórico?');"
-                  style="margin-top:8px;">
-              <button class="btn btn-ghost" type="submit" style="padding:8px 10px;">
-                🗑️ Remover
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <div class="ticket-body">
-          <div class="ticket-title">Dados</div>
-          <div style="line-height:1.35;">
-            <b>Data:</b> {{ p.criado_em }}<br>
-            {% if p.cliente_nome %}<b>Cliente:</b> {{ p.cliente_nome }}<br>{% endif %}
-            {% if p.cliente_tel %}<b>Tel:</b> {{ p.cliente_tel }}<br>{% endif %}
-            {% if p.endereco %}<b>Endereço:</b> {{ p.endereco }}<br>{% endif %}
-            {% if p.observacoes %}<b>Obs:</b> {{ p.observacoes }}<br>{% endif %}
-          </div>
-
-          <div style="margin-top:12px;" class="ticket-title">Itens</div>
-          <div class="ticket-itens">
-            {% for it in pedido_itens[p.id] %}
-              • {{ it.nome }} x{{ it.quantidade }} (R$ {{ "%.2f"|format(it.subtotal or 0) }})<br>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-
 </div>
-
+<script>
+(function(){
+  const periodo=document.getElementById('periodo');
+  const f={day:document.getElementById('dayField'),month:document.getElementById('monthField'),year:document.getElementById('yearField'),start:document.getElementById('startField'),end:document.getElementById('endField')};
+  function sync(){const p=periodo.value;f.day.hidden=p!=='dia';f.month.hidden=p!=='mes';f.year.hidden=p!=='ano';f.start.hidden=p!=='intervalo';f.end.hidden=p!=='intervalo';document.getElementById('data').disabled=p!=='dia';document.getElementById('mes').disabled=p!=='mes';document.getElementById('ano').disabled=p!=='ano';document.getElementById('data_inicio').disabled=p!=='intervalo';document.getElementById('data_fim').disabled=p!=='intervalo';}
+  periodo.addEventListener('change',sync);sync();
+})();
+</script>
 </body>
 </html>
