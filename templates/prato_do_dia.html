@@ -2,19 +2,18 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Prato do Dia • {{ nome_estabelecimento }}</title>
+  <title>Cardápio do Dia e Entrega • {{ nome_estabelecimento }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
 
 <div class="topbar">
   <div class="topbar-inner">
     <div class="brand">
       <div class="brand-icon">🍛</div>
       <div>
-        <div class="brand-title">Prato do Dia</div>
+        <div class="brand-title">Cardápio e Entrega</div>
         <div class="brand-sub">{{ nome_estabelecimento }}</div>
       </div>
     </div>
@@ -38,9 +37,9 @@
 
 <div class="container">
   <div class="card">
-    <h2 style="margin-bottom:10px;">Editar Prato do Dia (Marmitex)</h2>
+    <h2 style="margin-bottom:10px;">🍛 Cardápio do Dia e Taxa de Entrega</h2>
     <p style="opacity:.8; margin-bottom:12px;">
-      Isso aparece automaticamente na comanda quando o item tiver <b>OPÇÃO 1</b> ou <b>OPÇÃO 2</b>.
+      O cardápio configurado aparece automaticamente na comanda. A taxa definida aqui será usada como valor padrão nos novos pedidos de entrega.
       <br>Ex: “<b>OPÇÃO 2 - Parmegiana de frango</b>”
     </p>
 
