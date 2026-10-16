@@ -547,7 +547,7 @@
   }
   function updateDeliveryControls(){
     const isDelivery = deliverySelect?.value === 'DELIVERY';
-    if(deliveryFields) deliveryFields.style.display = isDelivery ? 'block' : 'none';
+    if(camposDelivery) camposDelivery.style.display = isDelivery ? 'block' : 'none';
     if(feeCheckbox){
       // A única exigência para habilitar o controle é escolher Delivery.
       // Se a taxa não estiver configurada, deixamos clicar, mas impedimos salvar com taxa zero.
