@@ -1441,6 +1441,10 @@ def caixa_cancelar_pedido(pedido_id):
 def caixa_remover_pedido(pedido_id):
     conn = db_conn()
     cur = conn.cursor()
+    pedido = cur.execute("SELECT id FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
+    if not pedido:
+        conn.close()
+        return redirect("/caixa")
     cur.execute("DELETE FROM itens_pedido WHERE pedido_id=?", (pedido_id,))
     cur.execute("DELETE FROM pedidos WHERE id=?", (pedido_id,))
     conn.commit()
@@ -1727,117 +1731,135 @@ def historico_limpar():
 def tela_editar_pedido(pedido_id):
     conn = db_conn()
     cur = conn.cursor()
-
     pedido = cur.execute("SELECT * FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
-    itens = itens_do_pedido(conn, pedido_id)
+    if not pedido:
+        conn.close()
+        return redirect("/caixa")
 
-    categorias = cur.execute("SELECT * FROM categorias WHERE ativo=1 ORDER BY ordem, nome").fetchall()
-    produtos = cur.execute("SELECT p.*, COALESCE(c.nome,'') AS categoria_nome FROM produtos p LEFT JOIN categorias c ON c.id=p.categoria_id WHERE p.ativo=1 ORDER BY p.nome").fetchall()
+    itens = itens_do_pedido(conn, pedido_id)
+    item_por_produto = {
+        int(it["produto_id"]): it for it in itens if it["produto_id"] is not None
+    }
+    categorias = cur.execute(
+        "SELECT * FROM categorias WHERE ativo=1 ORDER BY ordem, nome"
+    ).fetchall()
+    produtos = cur.execute("""
+        SELECT p.*, COALESCE(c.nome,'') AS categoria_nome,
+               COALESCE(c.ordem, 9999) AS categoria_ordem
+        FROM produtos p LEFT JOIN categorias c ON c.id=p.categoria_id
+        WHERE p.ativo=1 OR p.id IN (SELECT produto_id FROM itens_pedido WHERE pedido_id=?)
+        ORDER BY categoria_ordem, categoria_nome, p.nome
+    """, (pedido_id,)).fetchall()
 
     produtos_por_categoria = {c["id"]: [] for c in categorias}
     produtos_sem_categoria = []
-
-    for p in produtos:
-        cid = p["categoria_id"]
+    for produto in produtos:
+        cid = produto["categoria_id"]
         if cid in produtos_por_categoria:
-            produtos_por_categoria[cid].append(p)
+            produtos_por_categoria[cid].append(produto)
         else:
-            produtos_sem_categoria.append(p)
+            produtos_sem_categoria.append(produto)
 
     conn.close()
-
     return render_template(
-        "editar_pedido.html",
-        pedido=pedido,
-        itens=itens,
-        categorias=categorias,
+        "editar_pedido.html", pedido=pedido, itens=itens,
+        item_por_produto=item_por_produto, categorias=categorias,
         produtos_por_categoria=produtos_por_categoria,
         produtos_sem_categoria=produtos_sem_categoria,
+        taxa_entrega_configurada=get_taxa_entrega(),
         nome_estabelecimento=NOME_ESTAB
     )
+
 
 @app.route("/caixa/editar_pedido/<int:pedido_id>", methods=["POST"])
 @login_required
 def salvar_edicao_pedido(pedido_id):
     conn = db_conn()
     cur = conn.cursor()
+    pedido_atual = cur.execute("SELECT * FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
+    if not pedido_atual:
+        conn.close()
+        return redirect("/caixa")
 
     try:
-        cliente_nome = request.form.get("cliente_nome") or ""
-        cliente_tel = request.form.get("cliente_tel") or ""
-        endereco = request.form.get("endereco") or ""
-        cliente_numero = request.form.get("cliente_numero") or ""
-        cliente_bairro = request.form.get("cliente_bairro") or ""
-        observacoes = request.form.get("observacoes") or ""
-        forma_pagamento = request.form.get("forma_pagamento") or "DINHEIRO"
+        cliente_nome = (request.form.get("cliente_nome") or "").strip()
+        cliente_tel = (request.form.get("cliente_tel") or "").strip()
+        endereco = (request.form.get("endereco") or "").strip()
+        cliente_numero = (request.form.get("cliente_numero") or "").strip()
+        cliente_bairro = (request.form.get("cliente_bairro") or "").strip()
+        observacoes = (request.form.get("observacoes") or "").strip()
+        forma_pagamento = normalize_pagamento(request.form.get("forma_pagamento") or "DINHEIRO")
 
-        # 🔥 UPDATE SEGURO
+        canal = (request.form.get("canal") or pedido_atual["canal"] or "BALCAO").upper().strip()
+        if canal not in ("BALCAO", "DELIVERY"):
+            canal = "BALCAO"
+        destino = (request.form.get("destino") or pedido_atual["destino"] or "COZINHA").upper().strip()
+        if destino not in ("COZINHA", "BALCAO"):
+            destino = "COZINHA"
+
+        cobrar_taxa = request.form.get("cobrar_taxa") == "1" and canal == "DELIVERY"
+        taxa_anterior = float(pedido_atual["taxa_entrega"] or 0)
+        taxa_entrega = (taxa_anterior if taxa_anterior > 0 else get_taxa_entrega()) if cobrar_taxa else 0.0
+
         cur.execute("""
-            UPDATE pedidos SET
-                cliente_nome=?,
-                cliente_tel=?,
-                endereco=?,
-                cliente_numero=?,
-                cliente_bairro=?,
-                observacoes=?,
-                forma_pagamento=?
+            UPDATE pedidos SET canal=?, destino=?, cliente_nome=?, cliente_tel=?,
+                endereco=?, cliente_numero=?, cliente_bairro=?, observacoes=?,
+                forma_pagamento=?, taxa_entrega=?
             WHERE id=?
         """, (
-            cliente_nome,
-            cliente_tel,
-            endereco,
-            cliente_numero,
-            cliente_bairro,
-            observacoes,
-            forma_pagamento,
-            pedido_id
+            canal, destino, cliente_nome, cliente_tel, endereco, cliente_numero,
+            cliente_bairro, observacoes, forma_pagamento, taxa_entrega, pedido_id
         ))
 
-        # 🔥 LIMPA ITENS
         cur.execute("DELETE FROM itens_pedido WHERE pedido_id=?", (pedido_id,))
 
-        # 🔥 RECRIA ITENS (CORRIGIDO)
-        item_ids = request.form.getlist("item_id")
-
-        for pid in item_ids:
-            qtd = int(request.form.get(f"qtd_{pid}", 1))
-
+        for pid in request.form.getlist("item_id"):
+            try:
+                qtd = int(request.form.get(f"qtd_{pid}", 1))
+                product_id = int(pid)
+            except (TypeError, ValueError):
+                continue
             if qtd <= 0:
                 continue
+            produto = cur.execute("SELECT * FROM produtos WHERE id=?", (product_id,)).fetchone()
+            if not produto or int(produto["pesado"] or 0) == 1:
+                continue
+            preco = float(produto["preco"] or 0)
+            subtotal = preco * qtd
+            cur.execute("""
+                INSERT INTO itens_pedido
+                    (pedido_id, produto_id, nome, quantidade, preco_unit, subtotal, pesado_valor)
+                VALUES (?, ?, ?, ?, ?, ?, 0)
+            """, (pedido_id, produto["id"], produto["nome"], qtd, preco, subtotal))
 
-            pr = cur.execute("SELECT * FROM produtos WHERE id=?", (pid,)).fetchone()
+        for pid in request.form.getlist("pesado_id"):
+            try:
+                product_id = int(pid)
+                valor = float((request.form.get(f"valor_{pid}") or "0").replace(",", "."))
+            except (TypeError, ValueError):
+                continue
+            if valor <= 0:
+                continue
+            produto = cur.execute("SELECT * FROM produtos WHERE id=?", (product_id,)).fetchone()
+            if not produto or int(produto["pesado"] or 0) != 1:
+                continue
+            cur.execute("""
+                INSERT INTO itens_pedido
+                    (pedido_id, produto_id, nome, quantidade, preco_unit, subtotal, pesado_valor)
+                VALUES (?, ?, ?, 1, 0, ?, ?)
+            """, (pedido_id, produto["id"], produto["nome"], valor, valor))
 
-            if pr:
-                preco = float(pr["preco"] or 0)
-                subtotal = preco * qtd
-
-                cur.execute("""
-                    INSERT INTO itens_pedido 
-                    (pedido_id, produto_id, nome, quantidade, preco_unit, subtotal)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    pedido_id,
-                    pr["id"],
-                    pr["nome"],
-                    qtd,
-                    preco,
-                    subtotal
-                ))
-
-        # 🔥 RECALCULA
-        total = calcular_total_itens(conn, pedido_id)
-        cur.execute("UPDATE pedidos SET total=? WHERE id=?", (total, pedido_id))
-
+        total_itens = calcular_total_itens(conn, pedido_id)
+        cur.execute("UPDATE pedidos SET total=? WHERE id=?", (total_itens + taxa_entrega, pedido_id))
         conn.commit()
-
+        socketio.emit("pedido_caixa_atualizado", pedido_payload(conn, pedido_id))
     except Exception as e:
         print("ERRO AO EDITAR PEDIDO:", e)
         conn.rollback()
-
     finally:
         conn.close()
-
     return redirect("/caixa")
+
 
 # =====================
 # START
