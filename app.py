@@ -71,7 +71,8 @@ with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
 TEST_PRINT = bool(CONFIG.get("modo_teste_impressao", False))
-PORTA = int(CONFIG.get("porta", 5000))
+# Permite iniciar uma cópia de testes em outra porta sem alterar config.json.
+PORTA = int(os.environ.get("PADARIA_PORTA", CONFIG.get("porta", 5000)))
 PIN = str(CONFIG.get("pin_cozinha", "")).strip()
 NOME_ESTAB = CONFIG.get("nome_estabelecimento", "Emporio dos Paes Santo Antonio")
 
