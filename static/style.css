@@ -752,3 +752,43 @@ body { background:var(--emp-bg); color:var(--emp-ink); font-family:"Segoe UI",Ar
  .kpi { flex-wrap:wrap; }
  .cashier-layout { grid-template-columns:minmax(320px,.8fr) minmax(460px,1.2fr)!important; }
 }
+
+
+/* Empório: pedido em janela compacta, seleção de produtos e clientes */
+.customer-picker{margin-top:14px;padding:13px;background:#fffaf6;border:1px solid #f0dfd2;border-radius:12px}
+.customer-picker-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.customer-picker-title label{margin:0 0 7px!important}
+.customer-add-trigger{background:transparent;color:#c84d08;font-weight:800;padding:7px 0;white-space:nowrap}
+.customer-picked-note{font-size:12px;color:#777;margin-top:7px}
+.customer-create-panel[hidden]{display:none!important}
+.customer-create-panel{position:fixed;inset:0;z-index:1000;background:rgba(22,20,18,.48);display:grid;place-items:center;padding:24px}
+.customer-create-card{background:#fff;color:#191919;border-radius:17px;padding:22px;width:min(650px,100%);box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.customer-create-head{display:flex;justify-content:space-between;gap:14px;align-items:start;margin-bottom:16px}
+.customer-create-head strong{font-size:21px}.customer-create-head small{display:block;color:#777;margin-top:4px}
+.customer-create-head button{background:#f3f1ef;border-radius:8px;padding:8px 10px}
+.customer-create-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}.customer-create-grid .wide{grid-column:1/-1}
+.customer-create-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.customer-create-feedback{font-size:13px;color:#a94105;margin-top:10px}
+.product-picker-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.product-picker-heading small{display:block;color:#777;margin-top:4px}
+#produtoSelecionadoCount{background:#fff0e6;color:#a94105;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;white-space:nowrap}
+.cashier-product-search{margin-bottom:10px!important}
+.cashier-category-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 16px}
+.cashier-category-tabs button{background:#f2f1ef;border:1px solid #e5e2de;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800;color:#333}
+.cashier-category-tabs button.active{background:#ed6b19;color:#fff;border-color:#ed6b19}
+.cashier-product-card[hidden]{display:none!important}
+.cashier-product-card{min-width:0!important}
+.cashier-product-card .produto-img{height:86px!important;object-fit:cover}
+.cashier-product-card input[type=number]{min-width:0}
+/* O formulário abre como janela de trabalho e não expande a página inteira. */
+.new-order-panel[open]{position:fixed;z-index:900;inset:4vh 4vw;background:#fff;border:1px solid #ded9d3;border-radius:18px;box-shadow:0 24px 90px rgba(0,0,0,.28);overflow:auto;margin:0}
+.new-order-panel[open]::before{content:"";position:fixed;inset:0;background:rgba(24,22,20,.48);z-index:-1}
+.new-order-panel[open]>summary{position:sticky;top:0;z-index:4;background:#fff4eb;padding:18px 22px;border-bottom:1px solid #f0dfd2}
+.new-order-panel[open]>form{padding:18px 22px;max-width:1500px;margin:auto}
+.new-order-panel[open] .summary-action{font-size:0}.new-order-panel[open] .summary-action::after{content:"Fechar ✕";font-size:12px}
+.new-order-panel[open] .grid[style*="repeat(auto-fill"]{grid-template-columns:repeat(auto-fill,minmax(175px,1fr))!important;gap:10px!important}
+.new-order-panel[open] .produto{padding:10px!important}
+.new-order-panel[open] .produto-preco{margin-bottom:5px!important}
+.new-order-panel[open] .produto label{font-size:12px!important}
+.new-order-panel[open] .produto input[type=number]{padding:7px!important;min-height:34px!important}
+.new-order-panel[open] .grid[style*="1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+#formNovoPedido>button[type=submit]{position:sticky;bottom:0;width:100%;padding:14px;margin-top:18px;background:#ed6b19;color:white;border-radius:10px;box-shadow:0 -8px 18px rgba(255,255,255,.85)}
+@media(max-width:700px){.new-order-panel[open]{inset:0;border-radius:0}.customer-create-grid{grid-template-columns:1fr}.customer-create-grid .wide{grid-column:auto}.new-order-panel[open] .grid[style*="1fr 1fr"]{grid-template-columns:1fr!important}}
