@@ -198,7 +198,9 @@
   });
   function openModal(){modal.hidden=false;search.value='';filterProducts();syncChecks();search.focus();}
   function closeModal(){modal.hidden=true;}
-  function filterProducts(){const q=search.value.trim().toLocaleLowerCase('pt-BR');list.querySelectorAll('.product-option').forEach(label=>{const matches=label.dataset.name.toLocaleLowerCase('pt-BR').includes(q);label.hidden=!matches;label.style.display=matches?'flex':'none';});}
+  function normalizeProductText(value){return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('pt-BR');}
+  function filterProducts(){const q=normalizeProductText(search.value.trim());list.querySelectorAll('.product-option').forEach(label=>{const name=normalizeProductText(label.textContent);const matches=name.includes(q);label.hidden=!matches;label.style.setProperty('display',matches?'flex':'none','important');});}
+
   document.getElementById('produtosAbrir').addEventListener('click',openModal);
   document.getElementById('produtosTodos').addEventListener('click',()=>{selected.clear();renderSelected();syncChecks();});
   document.getElementById('produtosFechar').addEventListener('click',closeModal);
@@ -206,6 +208,8 @@
   document.getElementById('produtosSelecionarVisiveis').addEventListener('click',()=>{list.querySelectorAll('.product-option:not([hidden]) input').forEach(cb=>{selected.add(cb.value);});syncChecks();renderSelected();});
   document.getElementById('produtosLimparSelecao').addEventListener('click',()=>{selected.clear();syncChecks();renderSelected();});
   search.addEventListener('input',filterProducts);
+  search.addEventListener('search',filterProducts);
+  search.addEventListener('keyup',filterProducts);
   modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal();});
   renderSelected();
