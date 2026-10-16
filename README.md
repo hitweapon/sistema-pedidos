@@ -10,6 +10,14 @@ Sistema local de pedidos, caixa e cozinha desenvolvido em Flask.
 4. Abra `iniciar.bat`. O script instala/verifica as dependências listadas em `requirements.txt` e inicia o servidor.
 5. Acesse http://127.0.0.1:5000/login.
 
+### Rodar uma cópia de testes ao lado da versão em uso
+
+1. Mantenha a versão atual na pasta dela e copie o projeto para outra pasta. A cópia de testes deve ter seus próprios arquivos `dados.db` e `config.json`.
+2. Na pasta de testes, abra `iniciar_teste.bat`.
+3. A cópia de testes abrirá em http://127.0.0.1:5001/login; a versão normal continua usando a porta configurada, geralmente 5000.
+
+O iniciador de testes usa `PADARIA_PORTA` para escolher a porta 5001 sem alterar as configurações locais. Não faça a cópia de testes apontar para o banco de produção.
+
 Mantenha a janela do terminal aberta enquanto o sistema estiver em uso. Para encerrar, use Ctrl+C nessa janela.
 
 ## Estrutura principal
