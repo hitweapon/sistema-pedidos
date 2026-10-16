@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Comanda • Pedido #{{ pedido.id }}</title>
+
+  <style>
+    /* CORTA O BRANCO (margem do navegador) */
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; }
+
+    body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+
+    .paper {
+      width: 80mm;
+      padding: 4mm;              /* menor pra gastar menos papel */
+    }
+
+    .center { text-align: center; }
+
+    h1 {
+      font-size: 16px;
+      margin: 0 0 4px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .tag {
+      font-size: 13px;
+      font-weight: 900;
+      margin: 2px 0 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .meta {
+      font-size: 12px;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .meta b { font-weight: 900; }
+
+    .line { border-top: 2px dashed #000; margin: 6px 0; }
+
+    .cliente {
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .cliente .ttl {
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+    .cliente .row { margin: 1px 0; }
+    .cliente .row b { font-weight: 900; }
+
+    .itens {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+    .itens div { margin: 3px 0; }
+
+    .obs {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 6px;
+      font-weight: 700;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="paper">
+
+    <div class="center">
+      <h1>{{ nome_estabelecimento }}</h1>
+      <div class="tag">COMANDA COZINHA</div>
+    </div>
+
+    <div class="meta">
+      <div><b>Pedido:</b> #{{ pedido.id }} &nbsp; <b>Turno:</b> {{ pedido.turno }}</div>
+      <div><b>Hora:</b> {{ agora }}</div>
+      {% if pedido.canal %}<div><b>Canal:</b> {{ pedido.canal }}</div>{% endif %}
+    </div>
+
+    {# BLOCO DELIVERY / CLIENTE (só aparece se tiver algo preenchido) #}
+    {% set tem_cliente = (pedido.cliente_nome or pedido.cliente_tel or pedido.endereco) %}
+    {% if tem_cliente %}
+      <div class="line"></div>
+      <div class="cliente">
+        <div class="ttl">ENTREGA / CLIENTE</div>
+        {% if pedido.cliente_nome %}<div class="row"><b>Nome:</b> {{ pedido.cliente_nome }}</div>{% endif %}
+        {% if pedido.cliente_tel %}<div class="row"><b>Tel:</b> {{ pedido.cliente_tel }}</div>{% endif %}
+        {% if pedido.endereco %}<div class="row"><b>End:</b> {{ pedido.endereco }}</div>{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="line"></div>
+
+    <div class="itens">
+      {% if linhas and linhas|length > 0 %}
+        {% for l in linhas %}
+          <div>• {{ l }}</div>
+        {% endfor %}
+      {% else %}
+        <div>• (sem itens)</div>
+      {% endif %}
+    </div>
+
+    {% if pedido.observacoes %}
+      <div class="line"></div>
+      <div class="obs">📝 OBS: {{ pedido.observacoes }}</div>
+    {% endif %}
+
+    <div class="line"></div>
+    <div class="footer">Produção interna • Não fiscal</div>
+
+    <div class="no-print" style="margin-top:8px; text-align:center;">
+      <button onclick="window.print()" style="padding:10px 12px; font-weight:900; font-size:14px;">
+        🖨️ Imprimir
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // Auto imprimir (deixa o teste mais rápido)
+    window.onload = () => {
+      window.print();
+    };
+  </script>
+</body>
+</html>

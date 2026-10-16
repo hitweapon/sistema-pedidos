@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>🧾 Impressão • Pedido #{{ pedido.id }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .paper {
+      width: 80mm; /* padrão impressora térmica */
+      padding: 8mm;
+      margin: 0 auto;
+    }
+    h1 { font-size: 16px; margin: 0 0 6px; text-align: center; }
+    .meta { font-size: 12px; margin-bottom: 8px; }
+    .line { border-top: 1px dashed #000; margin: 8px 0; }
+    .itens { font-size: 12px; }
+    .itens div { margin: 4px 0; }
+    .total { font-size: 14px; font-weight: 700; margin-top: 8px; }
+    .center { text-align: center; font-size: 11px; margin-top: 10px; }
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="paper">
+  <h1>{{ nome_estabelecimento }}</h1>
+
+  <div class="meta">
+    <div><b>Pedido:</b> #{{ pedido.id }}</div>
+    <div><b>Turno:</b> {{ pedido.turno }}</div>
+    <div><b>Status:</b> {{ pedido.status }}</div>
+    <div><b>Data/Hora:</b> {{ agora }}</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div class="itens">
+    {% if linhas|length == 0 %}
+      <div>—</div>
+    {% endif %}
+    {% for l in linhas %}
+      <div>• {{ l }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="line"></div>
+
+<div class="total">TOTAL: R$ {{ "%.2f"|format(pedido.total or 0) }}</div>
+
+  <div class="center">
+    Obrigado! 🥖☕<br>
+    (Não fiscal)
+  </div>
+
+  <div class="no-print" style="margin-top:12px; display:flex; gap:10px;">
+    <button onclick="window.print()" style="padding:10px 12px; font-weight:700;">🖨️ Imprimir</button>
+    <a href="{{ back }}" style="padding:10px 12px; font-weight:700; text-decoration:none; border:1px solid #000;">
+      ⬅️ Voltar
+    </a>
+  </div>
+</div>
+
+<script>
+  // Auto-print e volta pro caixa
+  window.onload = () => {
+    window.print();
+    setTimeout(() => { window.location.href = "{{ back }}"; }, 800);
+  };
+</script>
+
+</body>
+</html>

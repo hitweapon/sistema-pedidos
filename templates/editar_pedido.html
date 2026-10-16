@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Editar Pedido</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+  <h2>✏️ Editando Pedido #{{ pedido.id }}</h2>
+
+  <form method="POST" action="/caixa/editar_pedido/{{ pedido.id }}">
+
+```
+<!-- CLIENTE -->
+<div class="card">
+  <h3>👤 Cliente</h3>
+
+  <input type="text" name="cliente_nome" placeholder="Nome"
+         value="{{ pedido.cliente_nome or '' }}">
+
+  <input type="text" name="cliente_tel" placeholder="Telefone"
+         value="{{ pedido.cliente_tel or '' }}">
+
+  <input type="text" name="endereco" placeholder="Rua"
+         value="{{ pedido.endereco or '' }}">
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+    <input type="text" name="cliente_numero" placeholder="Número"
+           value="{{ pedido.cliente_numero or '' }}">
+    <input type="text" name="cliente_bairro" placeholder="Bairro"
+           value="{{ pedido.cliente_bairro or '' }}">
+  </div>
+
+  <input type="text" name="observacoes" placeholder="Observações"
+         value="{{ pedido.observacoes or '' }}">
+</div>
+
+<!-- PAGAMENTO -->
+<div class="card">
+  <h3>💳 Pagamento</h3>
+
+  <select name="forma_pagamento">
+    <option value="DINHEIRO" {% if pedido.forma_pagamento=='DINHEIRO' %}selected{% endif %}>Dinheiro</option>
+    <option value="PIX" {% if pedido.forma_pagamento=='PIX' %}selected{% endif %}>Pix</option>
+    <option value="DEBITO" {% if pedido.forma_pagamento=='DEBITO' %}selected{% endif %}>Débito</option>
+    <option value="CREDITO" {% if pedido.forma_pagamento=='CREDITO' %}selected{% endif %}>Crédito</option>
+    <option value="VALE" {% if pedido.forma_pagamento=='VALE' %}selected{% endif %}>Vale</option>
+  </select>
+</div>
+
+<!-- ITENS -->
+<div class="card">
+  <h3>🛒 Itens</h3>
+
+  {% set itens_ids = [] %}
+  {% for it in itens %}
+    {% set _ = itens_ids.append(it.produto_id) %}
+  {% endfor %}
+
+  {% for c in categorias %}
+    <details open style="margin-bottom:10px;">
+      <summary style="font-weight:900;">{{ c.nome }}</summary>
+
+      <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
+        {% for p in produtos_por_categoria[c.id] %}
+          <div class="produto">
+
+            <div style="font-weight:900;">{{ p.nome }}</div>
+            <div>R$ {{ "%.2f"|format(p.preco or 0) }}</div>
+
+            <div style="display:flex; gap:10px; align-items:center;">
+              <input type="checkbox" name="item_id"
+                     value="{{ p.id }}"
+                     {% if p.id in itens_ids %}checked{% endif %}>
+
+              <input type="number"
+                     name="qtd_{{ p.id }}"
+                     value="{% for it in itens %}{% if it.produto_id==p.id %}{{ it.quantidade }}{% endif %}{% endfor %}"
+                     min="1">
+            </div>
+
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+  {% endfor %}
+
+</div>
+
+<button class="btn btn-primary" style="margin-top:15px;">
+  💾 Salvar alterações
+</button>
+```
+
+  </form>
+</div>
+
+</body>
+</html>

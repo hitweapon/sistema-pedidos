@@ -1,0 +1,10 @@
+{
+  "porta": 5000,
+  "pin_cozinha": "132",
+  "nome_estabelecimento": "Empório dos Pães Santo Antônio",
+  "impressoras": ["CONFEITARIA", "PADARIA", "ELGIN_I8_RAW"],
+  "impressora_caixa": "ELGIN",
+  "cortar_automatico": true,
+  "db_file": "dados.db",
+  "modo_teste_impressao": false
+}

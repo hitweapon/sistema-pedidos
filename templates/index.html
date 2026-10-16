@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cardápio • {{ nome_estabelecimento }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="banner">
+    <h1>{{ nome_estabelecimento }}</h1>
+    <p>Pães fresquinhos todos os dias</p>
+</div>
+
+<!-- ✅ PRATO DO DIA -->
+<div class="container" style="margin-top:-18px;">
+  <div class="card" style="border-left:6px solid #e67e22; padding:16px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#d35400,#e67e22);color:#fff;font-size:22px; box-shadow:0 12px 28px rgba(214,110,0,.25);">
+          🍛
+        </div>
+        <div>
+          <div style="font-weight:900; font-size:18px;">Prato do dia</div>
+          <div style="opacity:.75; font-size:13px;">Marmitex / Almoço</div>
+        </div>
+      </div>
+      <div style="opacity:.7; font-size:12px;">Atualizado pelo caixa</div>
+    </div>
+
+    {% if prato_do_dia and prato_do_dia|length > 0 %}
+      <div style="margin-top:10px; font-size:15px; line-height:1.4; font-weight:700;">
+        {{ prato_do_dia }}
+      </div>
+    {% else %}
+      <div style="margin-top:10px; opacity:.75;">
+        Hoje ainda não foi definido o prato do dia.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="container">
+    <h2 style="text-align:center; margin-top:16px;">Escolha seus produtos</h2>
+
+    <form action="/enviar" method="POST">
+        <div class="grid">
+
+            {% for produto in cardapio %}
+                {% if produto.pesado == 0 %}
+                <div class="produto" data-preco="{{ produto.preco }}">
+                    {% if produto.imagem %}
+                        <img src="{{ url_for('static', filename='img/' + produto.imagem) }}" class="produto-img">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default.png') }}" class="produto-img">
+                    {% endif %}
+
+                    <label class="produto-titulo">
+                        <!-- ✅ modo novo: id -->
+                        {% if produto.id is defined %}
+                          <input type="checkbox" name="item_id" value="{{ produto.id }}">
+                        {% else %}
+                          <!-- compat antigo -->
+                          <input type="checkbox" name="item" value="{{ produto.nome }}">
+                        {% endif %}
+                        {{ produto.nome }}
+                    </label>
+
+                    <div class="produto-preco">R$ {{ '%.2f'|format(produto.preco) }}</div>
+
+                    <label class="produto-qtd">
+                        Qtd:
+                        {% if produto.id is defined %}
+                          <input type="number" name="qtd_{{ produto.id }}" value="1" min="1">
+                        {% else %}
+                          <input type="number" name="qtd_{{ produto.nome }}" value="1" min="1">
+                        {% endif %}
+                    </label>
+                </div>
+                {% endif %}
+            {% endfor %}
+
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <label><b>Nome</b> (opcional)</label>
+          <input type="text" name="cliente_nome" placeholder="Ex: João">
+        </div>
+
+
+        <div class="card" style="margin-top:16px;">
+            <label><b>Observações do pedido</b> (opcional)</label>
+            <input type="text" name="observacoes" placeholder="Ex: sem cebola, tirar maionese, bem passado...">
+        </div>
+
+        <div class="total-area">
+            <h2>Total: R$ <span id="total">0.00</span></h2>
+            <button type="submit">🛒 Fazer pedido</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function atualizarTotal() {
+    let total = 0;
+    document.querySelectorAll(".produto").forEach(card => {
+        const check = card.querySelector("input[type='checkbox']");
+        const qtd = card.querySelector("input[type='number']");
+        const preco = parseFloat(card.dataset.preco || "0");
+        if (check && check.checked) total += preco * parseInt(qtd.value || "0", 10);
+    });
+    document.getElementById("total").textContent = total.toFixed(2);
+}
+document.addEventListener("input", atualizarTotal);
+document.addEventListener("change", atualizarTotal);
+atualizarTotal();
+</script>
+
+</body>
+</html>

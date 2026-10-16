@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>📊 Relatório • {{ nome_estabelecimento }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <div class="brand">
+            <div class="brand-icon">📊</div>
+            <div>
+                <div class="brand-title">Relatório</div>
+                <div class="brand-sub">Turno: <b>{{ turno }}</b></div>
+            </div>
+        </div>
+
+        <div class="kpi">
+            <a class="btn btn-ghost" href="/caixa" style="text-decoration:none; width:auto; padding:12px 14px; border-radius:999px;">
+                ⬅️ Voltar
+            </a>
+            <a class="btn btn-ghost" href="/logout" style="text-decoration:none; width:auto; padding:12px 14px; border-radius:999px;">
+                🚪 Sair
+            </a>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="card" style="margin-top:14px;">
+        <form method="POST" action="/relatorio">
+            <label><b>Selecionar turno</b></label>
+            <select name="turno" onchange="this.form.submit()" style="width:100%; padding:10px 12px; border-radius:12px;">
+                <option value="MANHA" {% if turno == 'MANHA' %}selected{% endif %}>Manhã</option>
+                <option value="TARDE" {% if turno == 'TARDE' %}selected{% endif %}>Tarde</option>
+                <option value="NOITE" {% if turno == 'NOITE' %}selected{% endif %}>Noite</option>
+            </select>
+        </form>
+
+        <hr style="margin:14px 0; opacity:.2;">
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+            <div class="produto" style="align-items:flex-start;">
+                <div class="produto-titulo">Total (PRONTO)</div>
+                <div class="produto-preco">R$ {{ "%.2f"|format(total_pronto) }}</div>
+            </div>
+
+            <div class="produto" style="align-items:flex-start;">
+                <div class="produto-titulo">Total (FECHADO)</div>
+                <div class="produto-preco">R$ {{ "%.2f"|format(total_fechado) }}</div>
+            </div>
+
+            <div class="produto" style="align-items:flex-start;">
+                <div class="produto-titulo">Pedidos</div>
+                <div style="font-weight:900; font-size:18px; margin-top:6px;">
+                    Total: {{ qtd_total }}<br>
+                    Pend: {{ qtd_pend }} • Pronto: {{ qtd_pronto }} • Fechado: {{ qtd_fechado }}
+                </div>
+            </div>
+
+            <div class="produto" style="align-items:flex-start;">
+                <div class="produto-titulo">Ticket médio</div>
+                <div class="produto-preco">R$ {{ "%.2f"|format(ticket_medio) }}</div>
+                <div class="muted" style="opacity:.75;">(Pronto + Fechado)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+        <h2 style="margin-bottom:10px;">Últimos 20 pedidos</h2>
+
+        {% for p in ultimos %}
+            <div style="padding:12px; border-radius:14px; border:1px solid rgba(0,0,0,0.08); margin-bottom:10px;">
+                <b>#{{ p.id }}</b> • <b>{{ p.status }}</b> • Total: <b>R$ {{ "%.2f"|format(p.valor_caixa or 0) }}</b><br>
+                <span style="opacity:.85;">{{ p.itens }}</span>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+</body>
+</html>

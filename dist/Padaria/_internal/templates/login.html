@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="container" style="max-width:520px; margin-top:48px;">
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+      <div class="brand-icon">🥖</div>
+      <div>
+        <div class="brand-title">{{ nome_estabelecimento }}</div>
+        <div class="brand-sub">Acesso restrito</div>
+      </div>
+    </div>
+
+    <form method="POST">
+      <label>PIN</label>
+      <input type="password" name="pin" placeholder="Digite o PIN" required>
+
+      <button class="btn btn-primary" style="margin-top:12px;">Entrar</button>
+
+      {% if erro %}
+        <p style="color:#e74c3c; font-weight:900; margin-top:10px;">PIN incorreto ❌</p>
+      {% endif %}
+    </form>
+
+    <p style="opacity:.75; font-size:13px; margin-top:12px;">
+      Dica: após entrar, use <b>/logout</b> para sair.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

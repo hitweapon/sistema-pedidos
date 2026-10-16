@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Prato do Dia • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🍛</div>
+      <div>
+        <div class="brand-title">Prato do Dia</div>
+        <div class="brand-sub">{{ nome_estabelecimento }}</div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <a class="kpi-card" href="/caixa" style="text-decoration:none; color:inherit;">
+        <div class="kpi-label">Voltar</div>
+        <div class="kpi-value">↩️ Caixa</div>
+      </a>
+      <a class="kpi-card" href="/historico" style="text-decoration:none; color:inherit;">
+        <div class="kpi-label">Histórico</div>
+        <div class="kpi-value">🗂️</div>
+      </a>
+      <a class="kpi-card" href="/logout" style="text-decoration:none; color:inherit;">
+        <div class="kpi-label">Sair</div>
+        <div class="kpi-value">🚪</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2 style="margin-bottom:10px;">Editar Prato do Dia (Marmitex)</h2>
+    <p style="opacity:.8; margin-bottom:12px;">
+      Isso aparece automaticamente na comanda quando o item tiver <b>OPÇÃO 1</b> ou <b>OPÇÃO 2</b>.
+      <br>Ex: “<b>OPÇÃO 2 - Parmegiana de frango</b>”
+    </p>
+
+    <form action="/prato_do_dia/salvar" method="POST">
+      <label><b>Opção 1</b></label>
+      <textarea name="prato_do_dia_1" rows="3" style="width:100%; padding:12px; border-radius:12px; font-size:16px;">{{ prato_do_dia_1 }}</textarea>
+
+      <label style="margin-top:12px;"><b>Opção 2</b></label>
+      <textarea name="prato_do_dia_2" rows="3" style="width:100%; padding:12px; border-radius:12px; font-size:16px;">{{ prato_do_dia_2 }}</textarea>
+
+      <button class="btn btn-primary" type="submit" style="margin-top:12px;">💾 Salvar</button>
+    </form>
+
+    <div style="margin-top:14px; opacity:.85; font-size:13px; line-height:1.35;">
+      <b>Dica:</b> seus produtos podem continuar como “MARMITEX OPÇÃO 1” e “MARMITEX OPÇÃO 2”.
+      O sistema vai imprimir assim:
+      <br>• <b>MARMITEX OPÇÃO 1 - (texto da opção 1)</b>
+      <br>• <b>MARMITEX OPÇÃO 2 - (texto da opção 2)</b>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

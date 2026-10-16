@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>🍳 Cozinha • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🍳</div>
+      <div>
+        <div class="brand-title">Cozinha</div>
+        <div class="brand-sub">{{ nome_estabelecimento }}</div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-card">
+        <div class="kpi-label">Pendentes</div>
+        <div class="kpi-value" id="kpiPend">{{ pedidos|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="kitchen-grid" id="gridCozinha">
+
+    {% if pedidos|length == 0 %}
+      <div class="empty-state">
+        <div class="empty-emoji">🍞</div>
+        <h2>Nenhum pedido pendente</h2>
+        <p>Quando chegar pedido, ele aparece automaticamente.</p>
+      </div>
+    {% endif %}
+
+    {% for p in pedidos %}
+      <div class="ticket" id="ticket-{{ p.id }}">
+        <div class="ticket-head">
+          <div>
+            <div class="ticket-id">Pedido #{{ p.id }}</div>
+            <div class="ticket-badge">PENDENTE • {{ p.turno }}</div>
+          </div>
+
+          <div class="ticket-thumbs">
+            {% for t in p.thumbs %}
+              <img class="thumb" src="{{ url_for('static', filename='img/' + t.imagem) }}" alt="{{ t.nome }}" title="{{ t.nome }}">
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="ticket-body">
+          <div class="ticket-title">Itens</div>
+          <div class="ticket-itens">
+            {% for l in p.linhas %}
+              • {{ l }}<br>
+            {% endfor %}
+          </div>
+
+          {% if p.observacoes %}
+            <div style="margin-top:10px; font-weight:900;">
+              📝 OBS: <span style="font-weight:700;">{{ p.observacoes }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="ticket-actions">
+          <button class="btn btn-ghost" onclick="copiarPedido({{ p.id }})">📋 Copiar</button>
+
+          <a class="btn btn-ghost" href="/imprimir_cozinha/{{ p.id }}" target="_blank" style="display:grid; place-items:center; text-decoration:none;">
+            🖨️ Imprimir
+          </a>
+
+          <button class="btn btn-primary" onclick="marcarPronto({{ p.id }})">✅ Marcar como PRONTO</button>
+        </div>
+      </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+<script>
+const socket = io();
+
+// Se você tem som:
+let audio = new Audio("/static/sound/notificacao.wav");
+
+// Atualiza KPI
+function atualizarKPI(){
+  const n = document.querySelectorAll(".ticket").length;
+  const el = document.getElementById("kpiPend");
+  if(el) el.textContent = n;
+}
+
+// Copiar texto
+function copiarPedido(id){
+  const ticket = document.getElementById("ticket-" + id);
+  if(!ticket) return;
+
+  const itens = ticket.querySelector(".ticket-itens")?.innerText || "";
+  const obs = ticket.innerText.includes("OBS:") ? (ticket.innerText.split("OBS:")[1] || "").trim() : "";
+  const txt = `Pedido #${id}\n${itens}\n${obs ? ("OBS: " + obs) : ""}`;
+
+  navigator.clipboard.writeText(txt).then(()=>{
+    // ok
+  }).catch(()=>{});
+}
+
+// Marcar pronto (AJAX)
+function marcarPronto(id){
+  fetch("/finalizar_cozinha/" + id, { method:"POST" })
+    .then(res=>{
+      if(res.status === 204){
+        const el = document.getElementById("ticket-" + id);
+        if(el) el.remove();
+        atualizarKPI();
+      }
+    })
+    .catch(()=>{});
+}
+
+// Novo pedido: pede pro backend atualizar pelo caixa; aqui só remove empty state e toca som
+socket.on("novo_pedido", function(data){
+  audio.currentTime = 0;
+  audio.play().catch(()=>{});
+  // Recarrega a página (mais seguro) ou você pode implementar append via HTML.
+  // Como você quer zero dor de cabeça, aqui é o caminho mais estável:
+  window.location.reload();
+});
+
+// Pedido pronto: remove
+socket.on("pedido_pronto", function(id){
+  const el = document.getElementById("ticket-" + id);
+  if(el) el.remove();
+  atualizarKPI();
+});
+</script>
+
+</body>
+</html>

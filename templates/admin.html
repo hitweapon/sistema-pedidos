@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">⚙️</div>
+      <div>
+        <div class="brand-title">Admin</div>
+        <div class="brand-sub">{{ nome_estabelecimento }}</div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <a class="btn btn-ghost" href="/caixa" style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">🧾 Caixa</a>
+      <a class="btn btn-ghost" href="/cozinha" style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">🍳 Cozinha</a>
+      <a class="btn btn-ghost" href="/logout" style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">🚪 Sair</a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr; align-items:start;">
+    <!-- CATEGORIAS -->
+    <div class="card">
+      <h2 style="margin-bottom:10px;">📁 Categorias</h2>
+
+      <form action="/admin/add_categoria" method="POST">
+        <label>Nome</label>
+        <input type="text" name="nome" placeholder="Ex: Salgados" required>
+        <label>Ordem (opcional)</label>
+        <input type="number" name="ordem" placeholder="0">
+
+        <button class="btn btn-primary" style="margin-top:12px;">➕ Adicionar categoria</button>
+      </form>
+
+      <div style="margin-top:16px;">
+        {% for c in categorias %}
+          <div class="card" style="padding:12px; margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <div>
+                <div style="font-weight:900; font-size:16px;">{{ c.nome }}</div>
+                <div style="opacity:.7; font-size:12px;">Ordem: {{ c.ordem }}</div>
+              </div>
+
+              <form action="/admin/remover_categoria/{{ c.id }}" method="POST" onsubmit="return confirm('Remover categoria? Produtos vão ficar sem categoria.');">
+                <button class="danger" style="margin:0;">🗑️ Remover</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- PRODUTOS -->
+    <div class="card">
+      <h2 style="margin-bottom:10px;">🧺 Produtos</h2>
+
+      {% if produto_edit %}
+        <div class="card" style="padding:12px; margin-bottom:12px; border:1px solid rgba(46,204,113,.35);">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <div>
+              <div style="font-weight:900;">✏️ Editando: {{ produto_edit.nome }}</div>
+              <div style="opacity:.75; font-size:12px;">ID #{{ produto_edit.id }}</div>
+            </div>
+            <a class="btn btn-ghost" href="/admin" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+              ✖ Cancelar edição
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
+      <form
+        action="{% if produto_edit %}/admin/editar_produto/{{ produto_edit.id }}{% else %}/admin/add_produto{% endif %}"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <label>Nome</label>
+        <input type="text" name="nome" placeholder="Ex: Coxinha" required value="{{ produto_edit.nome if produto_edit else '' }}">
+
+        <label>Preço (fixo)</label>
+        <input type="number" step="0.01" name="preco" placeholder="Ex: 6.50" value="{{ '%.2f'|format(produto_edit.preco or 0) if produto_edit else '' }}">
+
+        <label>Categoria</label>
+        <select name="categoria_id" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+          <option value="">(Sem categoria)</option>
+          {% for c in categorias %}
+            <option
+              value="{{ c.id }}"
+              {% if produto_edit and produto_edit.categoria_id == c.id %}selected{% endif %}
+            >{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="checkbox">
+          <input type="checkbox" id="pesado" name="pesado" value="1" {% if produto_edit and produto_edit.pesado == 1 %}checked{% endif %}>
+          <label for="pesado" style="margin:0;">Produto pesável (valor digitado no caixa)</label>
+        </div>
+
+        <div class="checkbox">
+          <input type="checkbox" id="ativo" name="ativo" value="1" {% if (produto_edit and produto_edit.ativo == 1) or (not produto_edit) %}checked{% endif %}>
+          <label for="ativo" style="margin:0;">Ativo (aparece no caixa)</label>
+        </div>
+
+        <label>Imagem (opcional)</label>
+        <input type="file" name="imagem" accept="image/*">
+
+        {% if produto_edit and produto_edit.imagem %}
+          <div style="margin-top:8px; opacity:.8; font-size:12px;">Imagem atual:</div>
+          <div style="margin-top:6px;">
+            <img
+              src="{{ url_for('static', filename='img/' + (produto_edit.imagem or 'default.png')) }}"
+              style="width:84px; height:84px; object-fit:cover; border-radius:16px; border:1px solid rgba(0,0,0,.08);"
+            />
+          </div>
+          <div style="margin-top:6px; opacity:.65; font-size:12px;">
+            Se não escolher outra, mantém a atual.
+          </div>
+        {% endif %}
+
+        <button class="btn btn-primary" style="margin-top:12px;">
+          {% if produto_edit %}💾 Atualizar produto{% else %}✅ Salvar produto{% endif %}
+        </button>
+      </form>
+
+      <div style="margin-top:18px;">
+        <h3 style="margin-bottom:8px;">Cadastrados</h3>
+
+        {% for p in produtos %}
+          <div class="card" style="padding:12px; margin-top:10px;">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <img
+                src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}"
+                style="width:64px; height:64px; object-fit:cover; border-radius:16px; border:1px solid rgba(0,0,0,.08);"
+              />
+
+              <div style="flex:1;">
+                <div style="font-weight:900; font-size:16px;">
+                  {{ p.nome }}
+                  {% if p.pesado == 1 %}
+                    <span class="tag pesado" style="margin-left:6px;">PESÁVEL</span>
+                  {% else %}
+                    <span class="tag normal" style="margin-left:6px;">NORMAL</span>
+                  {% endif %}
+                  {% if p.ativo == 0 %}
+                    <span class="tag" style="background:rgba(231,76,60,0.14); color:#c0392b; margin-left:6px;">INATIVO</span>
+                  {% endif %}
+                </div>
+                <div style="opacity:.75; font-size:13px;">
+                  Categoria: {{ p.categoria_nome or "Sem categoria" }}
+                </div>
+                <div style="font-weight:900; color:#d35400; margin-top:4px;">
+                  R$ {{ "%.2f"|format(p.preco or 0) }}
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:8px; min-width:130px;">
+                <a class="btn btn-ghost"
+                   href="/admin?edit={{ p.id }}"
+                   style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+                  ✏️ Editar
+                </a>
+
+                <form action="/admin/toggle_produto/{{ p.id }}" method="POST">
+                  <button class="btn btn-ghost" type="submit">{{ "Ocultar" if p.ativo==1 else "Ativar" }}</button>
+                </form>
+
+                <form action="/admin/remover_produto/{{ p.id }}" method="POST" onsubmit="return confirm('Remover produto?');">
+                  <button class="danger" type="submit">🗑️ Remover</button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

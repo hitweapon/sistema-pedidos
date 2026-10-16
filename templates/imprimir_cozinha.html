@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>🍳 Comanda Cozinha • Pedido #{{ pedido.id }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .paper{
+      width: 80mm;
+      padding: 8mm;
+      margin: 0 auto;
+    }
+    h1 { font-size: 16px; margin: 0 0 6px; text-align: center; }
+    .meta { font-size: 12px; margin-bottom: 8px; }
+    .line { border-top: 1px dashed #000; margin: 8px 0; }
+    .itens { font-size: 12px; }
+    .itens div { margin: 4px 0; }
+    .total { font-size: 14px; font-weight: 700; margin-top: 8px; }
+    .center { text-align: center; font-size: 11px; margin-top: 10px; }
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="paper">
+  <h1>{{ nome_estabelecimento }}</h1>
+  <div class="center" style="font-weight:900; margin-top:-2px;">COMANDA COZINHA</div>
+
+  <div class="meta" style="margin-top:6px;">
+    <div><b>Pedido:</b> #{{ pedido.id }}</div>
+    <div><b>Turno:</b> {{ pedido.turno }}</div>
+    <div><b>Canal:</b> {{ pedido.canal }}</div>
+    <div><b>Hora:</b> {{ agora }}</div>
+  </div>
+
+  {% if pedido.canal == 'DELIVERY' %}
+    <div class="line"></div>
+    <div class="meta">
+      <div style="font-weight:900;">ENTREGA / CLIENTE</div>
+      {% if pedido.cliente_nome %}<div><b>Nome:</b> {{ pedido.cliente_nome }}</div>{% endif %}
+      {% if pedido.cliente_tel %}<div><b>Tel:</b> {{ pedido.cliente_tel }}</div>{% endif %}
+      {% if pedido.endereco %}<div><b>End:</b> {{ pedido.endereco }}</div>{% endif %}
+    </div>
+  {% endif %}
+
+  <div class="line"></div>
+
+  <div class="itens">
+    {% if linhas|length == 0 %}
+      <div>—</div>
+    {% endif %}
+    {% for l in linhas %}
+      <div>• {{ l }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="line"></div>
+
+  <!-- ✅ TOTAL -->
+  <div class="total">TOTAL: R$ {{ "%.2f"|format(pedido.total or 0) }}</div>
+
+  <div class="center">
+    Produção Interna • Não fiscal
+  </div>
+
+  <div class="no-print" style="margin-top:12px; display:flex; justify-content:center;">
+    <button onclick="window.print()" style="padding:10px 16px; font-weight:700;">🖨️ Imprimir</button>
+  </div>
+</div>
+
+<script>
+  window.onload = () => { window.print(); };
+</script>
+
+</body>
+</html>

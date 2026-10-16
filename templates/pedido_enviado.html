@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedido enviado</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container" style="max-width:720px; margin-top:40px;">
+  <div class="card">
+    <h1 style="margin-bottom:10px;">✅ Pedido enviado!</h1>
+    <p style="font-weight:900; font-size:18px;">Total: R$ {{ "%.2f"|format(total) }}</p>
+    <p style="opacity:.75; margin-top:8px;">Aguarde, o caixa vai liberar para a cozinha.</p>
+
+    <a href="/" class="btn btn-ghost" style="display:inline-flex; margin-top:14px; text-decoration:none; align-items:center; justify-content:center;">
+      Voltar
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

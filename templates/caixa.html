@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Caixa • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🧾</div>
+      <div>
+        <div class="brand-title">Caixa</div>
+        <div class="brand-sub">{{ nome_estabelecimento }}</div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-card">
+        <div class="kpi-label">Aguardando</div>
+        <div class="kpi-value">{{ qtd_aguardando }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cozinha</div>
+        <div class="kpi-value">{{ qtd_pend }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Prontos</div>
+        <div class="kpi-value">{{ qtd_pronto }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fechados</div>
+        <div class="kpi-value">{{ qtd_fechado }}</div>
+      </div>
+
+      <a class="btn btn-ghost" href="/historico"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         🗂️ Histórico
+      </a>
+
+
+      <a class="btn btn-ghost" href="/admin"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         ⚙️ Admin
+      </a>
+
+      <a class="btn btn-ghost" href="/cozinha"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         🍳 Cozinha
+      </a>
+
+      <a class="btn btn-ghost" href="/logout"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         🚪 Sair
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr; align-items:start;">
+    <!-- COLUNA ESQUERDA -->
+    <div class="card">
+      <h2 style="margin-bottom:10px;">🎛️ Controles</h2>
+
+      <form method="POST" style="display:flex; gap:10px; align-items:end;">
+        <input type="hidden" name="acao" value="set_turno">
+        <div style="flex:1;">
+          <label>Turno atual</label>
+          <select name="turno" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+            <option value="MANHA" {% if turno=='MANHA' %}selected{% endif %}>Manhã</option>
+            <option value="TARDE" {% if turno=='TARDE' %}selected{% endif %}>Tarde</option>
+            <option value="NOITE" {% if turno=='NOITE' %}selected{% endif %}>Noite</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="height:44px;">Salvar</button>
+      </form>
+
+      <div style="margin-top:14px;">
+        <div style="font-weight:900; font-size:18px;">💵 Total do turno: <span style="color:#d35400;">R$ {{ "%.2f"|format(total_turno) }}</span></div>
+        <div style="opacity:.75; font-size:13px; margin-top:4px;">Soma de pedidos PRONTO + FECHADO do turno atual.</div>
+      </div>
+
+
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="/caixa?filtro=TODOS" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Todos</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=AGUARDANDO_CAIXA" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Aguardando</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=PENDENTE" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Cozinha</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=PRONTO" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Pronto</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=FECHADO" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Fechado</a>
+      </div>
+
+      <hr style="margin:16px 0; opacity:.2;">
+
+      <h2 style="margin-bottom:10px;">➕ Novo pedido</h2>
+
+      <form action="/caixa/criar_pedido" method="POST" id="formNovoPedido">
+
+        <!-- ✅ FORMA DE PAGAMENTO (AGORA DENTRO DO FORM) -->
+        <div style="margin-top:10px;">
+          <label>Forma de pagamento</label>
+          <select name="forma_pagamento" required style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+            <option value="">Selecione...</option>
+            <option value="DINHEIRO">Dinheiro</option>
+            <option value="PIX">Pix</option>
+            <option value="DEBITO">Cartão Débito</option>
+            <option value="CREDITO">Cartão Crédito</option>
+            <option value="VALE">Vale</option>
+          </select>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:10px;">
+          <div>
+            <label>Canal</label>
+            <select name="canal" id="canal" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+              <option value="BALCAO">Balcão</option>
+              <option value="DELIVERY">Delivery (AiqFome/Whats)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Destino</label>
+            <select name="destino" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+              <option value="COZINHA">Cozinha</option>
+              <option value="BALCAO">Balcão (não cozinha)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Nome do cliente (opcional)</label>
+          <input type="text" name="cliente_nome" placeholder="Ex: João / Maria">
+        </div>
+
+        <div id="camposDelivery" style="display:none; margin-top:10px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr;">
+            <div>
+              <label>Telefone</label>
+              <input type="text" name="cliente_tel" placeholder="Ex: (19) 9xxxx-xxxx">
+            </div>
+            <div>
+              <label>Número</label>
+              <input type="text" name="cliente_numero" placeholder="Ex: 123">
+            </div>
+          </div>
+
+          <label style="margin-top:10px;">Rua</label>
+          <input type="text" name="endereco" placeholder="Ex: Rua Santo Antônio">
+
+          <label style="margin-top:10px;">Bairro</label>
+          <input type="text" name="cliente_bairro" placeholder="Ex: Centro">
+        </div>
+
+        <label style="margin-top:10px;">Observações do pedido</label>
+        <input type="text" name="observacoes" placeholder="Ex: sem cebola, tirar maionese...">
+
+        <hr style="margin:16px 0; opacity:.2;">
+
+        <h3 style="margin-bottom:10px;">🛒 Itens (normais)</h3>
+
+        {% for c in categorias %}
+          <details style="margin-bottom:10px;">
+            <summary style="font-weight:900; cursor:pointer;">{{ c.nome }}</summary>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
+              {% for p in produtos_por_categoria[c.id] %}
+                {% if p.pesado == 0 %}
+                <div class="produto" style="align-items:stretch;">
+                  <img class="produto-img" src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}">
+                  <div style="font-weight:900; font-size:16px;">{{ p.nome }}</div>
+                  <div class="produto-preco">R$ {{ "%.2f"|format(p.preco or 0) }}</div>
+
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="checkbox" name="item_id" value="{{ p.id }}" style="transform:scale(1.3); width:auto;">
+                    <div style="flex:1;">
+                      <label style="margin:0; opacity:.75;">Qtd</label>
+                      <input type="number" name="qtd_{{ p.id }}" value="1" min="1">
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endfor %}
+
+        {% if produtos_sem_categoria %}
+          <details style="margin-bottom:10px;">
+            <summary style="font-weight:900; cursor:pointer;">Sem categoria</summary>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
+              {% for p in produtos_sem_categoria %}
+                {% if p.pesado == 0 %}
+                <div class="produto" style="align-items:stretch;">
+                  <img class="produto-img" src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}">
+                  <div style="font-weight:900; font-size:16px;">{{ p.nome }}</div>
+                  <div class="produto-preco">R$ {{ "%.2f"|format(p.preco or 0) }}</div>
+
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="checkbox" name="item_id" value="{{ p.id }}" style="transform:scale(1.3); width:auto;">
+                    <div style="flex:1;">
+                      <label style="margin:0; opacity:.75;">Qtd</label>
+                      <input type="number" name="qtd_{{ p.id }}" value="1" min="1">
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+
+        <hr style="margin:16px 0; opacity:.2;">
+
+        <h3 style="margin-bottom:10px;">⚖️ Pesáveis (digitar valor)</h3>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+          {% for c in categorias %}
+            {% for p in produtos_por_categoria[c.id] %}
+              {% if p.pesado == 1 %}
+                <div class="card" style="padding:12px;">
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <img src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}" style="width:54px;height:54px;border-radius:16px;object-fit:cover;">
+                    <div style="flex:1;">
+                      <div style="font-weight:900;">{{ p.nome }}</div>
+                      <div style="opacity:.75; font-size:12px;">{{ c.nome }}</div>
+                    </div>
+                    <input type="checkbox" name="pesado_id" value="{{ p.id }}" style="transform:scale(1.3); width:auto;">
+                  </div>
+                  <label style="margin-top:10px;">Valor (R$)</label>
+                  <input type="number" step="0.01" min="0" name="valor_{{ p.id }}" placeholder="Ex: 12.50">
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+
+        <button class="btn btn-primary" style="margin-top:14px;">✅ Criar pedido</button>
+      </form>
+
+      <hr style="margin:16px 0; opacity:.2;">
+
+      <form action="/fechar_turno" method="POST" onsubmit="return confirm('Você tem certeza que quer fechar o turno?\\nTodos os pedidos serão apagados e resetados.');">
+        <input type="hidden" name="turno" value="{{ turno }}">
+        <button class="danger">⚠️ Fechar turno (apagar tudo)</button>
+      </form>
+
+    </div>
+
+    <!-- COLUNA DIREITA -->
+    <div class="card">
+      <h2 style="margin-bottom:10px;">📌 Pedidos ({{ filtro }})</h2>
+
+      {% if pedidos|length == 0 %}
+        <div class="empty-state">
+          <div class="empty-emoji">🧾</div>
+          <div style="font-weight:900; font-size:18px;">Nenhum pedido aqui</div>
+          <div style="opacity:.75;">Quando chegar pedido, ele aparece automaticamente.</div>
+        </div>
+      {% endif %}
+
+      {% for p in pedidos %}
+        <div class="ticket" style="margin-top:12px;">
+          <div class="ticket-head">
+            <div>
+              <div class="ticket-id">Pedido #{{ p.id }}</div>
+              <div class="ticket-badge">
+                {{ p.status }}
+                {% if p.canal == 'DELIVERY' %} • DELIVERY{% endif %}
+                {% if p.destino == 'BALCAO' %} • BALCÃO{% endif %}
+              </div>
+
+              <!-- ✅ MOSTRA PAGAMENTO (SE EXISTIR) -->
+              {% if p.forma_pagamento %}
+                <div style="margin-top:6px; font-size:13px; font-weight:900; opacity:.9;">
+                  💳 Pagamento: {{ p.forma_pagamento }}
+                </div>
+              {% endif %}
+
+              {% if p.canal == 'DELIVERY' %}
+                {% if (p.cliente_nome or p.endereco or p.cliente_tel or p.cliente_numero or p.cliente_bairro) %}
+                  <div style="margin-top:8px; font-size:14px; font-weight:800;">
+                    👤 {{ p.cliente_nome or "-" }}<br>
+                    {% if p.cliente_tel %}📞 {{ p.cliente_tel }}<br>{% endif %}
+                    📍 {{ p.endereco or "-" }}
+                    {% if p.cliente_numero %}, {{ p.cliente_numero }}{% endif %}
+                    {% if p.cliente_bairro %} - {{ p.cliente_bairro }}{% endif %}
+                  </div>
+                {% endif %}
+              {% else %}
+                {% if p.cliente_nome %}
+                  <div style="margin-top:8px; font-size:14px; font-weight:800;">
+                    👤 {{ p.cliente_nome }}
+                  </div>
+                {% endif %}
+              {% endif %}
+            </div>
+
+            <div style="text-align:right;">
+              <div style="font-weight:900; font-size:18px; color:#d35400;">R$ {{ "%.2f"|format(p.total or 0) }}</div>
+              <div style="opacity:.7; font-size:12px;">Turno: {{ p.turno }}</div>
+            </div>
+          </div>
+
+          <div class="ticket-body">
+            <div class="ticket-title">Itens</div>
+            <div class="ticket-itens">
+              {% for it in pedido_itens[p.id] %}
+                • {{ it.nome }}
+                {% if it.pesado_valor %}
+                  (R$ {{ "%.2f"|format(it.pesado_valor or 0) }})
+                {% else %}
+                  x{{ it.quantidade }} (R$ {{ "%.2f"|format(it.subtotal or 0) }})
+                {% endif %}
+                <br>
+              {% endfor %}
+            </div>
+
+            {% if p.observacoes %}
+              <div style="margin-top:10px; font-weight:900;">📝 Obs:</div>
+              <div style="opacity:.9;">{{ p.observacoes }}</div>
+            {% endif %}
+
+            <form action="/caixa/atualizar_obs/{{ p.id }}" method="POST" style="margin-top:10px;">
+              <input type="text" name="observacoes" placeholder="Editar observações..." value="{{ p.observacoes or '' }}">
+              <button class="btn btn-ghost" style="margin-top:8px;">Salvar obs</button>
+            </form>
+          </div>
+
+          <div class="ticket-actions">
+
+            <a href="/caixa/editar/{{ p.id }}" class="btn btn-ghost" style="width:100%;">
+  ✏️ Editar pedido
+</a>
+
+            {% if p.status == 'AGUARDANDO_CAIXA' %}
+              <form action="/caixa/liberar_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-primary" type="submit">➡️ Liberar p/ cozinha</button>
+              </form>
+              <form action="/caixa/liberar_imprimir_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🖨️ Liberar + imprimir</button>
+              </form>
+
+            {% elif p.status == 'PENDENTE' %}
+              <form action="/caixa/marcar_pronto/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-primary" type="submit">✅ Marcar PRONTO</button>
+              </form>
+
+              <form action="/imprimir_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🖨️ Imprimir</button>
+              </form>
+
+            {% elif p.status == 'PRONTO' %}
+              <form action="/caixa/fechar_pedido/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-primary" type="submit">💰 Fechar pedido</button>
+              </form>
+
+              <form action="/imprimir_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🖨️ Imprimir</button>
+              </form>
+
+            {% else %}
+              <form action="/caixa/remover_pedido/{{ p.id }}" method="POST" style="width:100%;" onsubmit="return confirm('Remover pedido do histórico?');">
+                <button class="btn btn-ghost" type="submit">🗑️ Remover</button>
+              </form>
+              <form action="/caixa/cancelar_pedido/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🚫 Cancelar</button>
+              </form>
+            {% endif %}
+
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const canalSel = document.getElementById("canal");
+  const camposDelivery = document.getElementById("camposDelivery");
+
+  function toggleDelivery(){
+    camposDelivery.style.display = (canalSel.value === "DELIVERY") ? "block" : "none";
+  }
+  canalSel.addEventListener("change", toggleDelivery);
+  toggleDelivery();
+
+  const socket = io();
+  socket.on("pedido_caixa_novo", () => { location.reload(); });
+  socket.on("pedido_caixa_atualizado", () => { location.reload(); });
+  socket.on("pedido_caixa_removido", () => { location.reload(); });
+  socket.on("turno_fechado", () => { location.reload(); });
+</script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Caixa • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🧾</div>
+      <div>
+        <div class="brand-title">Caixa</div>
+        <div class="brand-sub">{{ nome_estabelecimento }}</div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-card">
+        <div class="kpi-label">Aguardando</div>
+        <div class="kpi-value">{{ qtd_aguardando }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cozinha</div>
+        <div class="kpi-value">{{ qtd_pend }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Prontos</div>
+        <div class="kpi-value">{{ qtd_pronto }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fechados</div>
+        <div class="kpi-value">{{ qtd_fechado }}</div>
+      </div>
+
+      <a class="btn btn-ghost" href="/historico"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         🗂️ Histórico
+      </a>
+
+
+      <a class="btn btn-ghost" href="/admin"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         ⚙️ Admin
+      </a>
+
+      <a class="btn btn-ghost" href="/cozinha"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         🍳 Cozinha
+      </a>
+
+      <a class="btn btn-ghost" href="/logout"
+         style="text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+         🚪 Sair
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr; align-items:start;">
+    <!-- COLUNA ESQUERDA -->
+    <div class="card">
+      <h2 style="margin-bottom:10px;">🎛️ Controles</h2>
+
+      <form method="POST" style="display:flex; gap:10px; align-items:end;">
+        <input type="hidden" name="acao" value="set_turno">
+        <div style="flex:1;">
+          <label>Turno atual</label>
+          <select name="turno" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+            <option value="MANHA" {% if turno=='MANHA' %}selected{% endif %}>Manhã</option>
+            <option value="TARDE" {% if turno=='TARDE' %}selected{% endif %}>Tarde</option>
+            <option value="NOITE" {% if turno=='NOITE' %}selected{% endif %}>Noite</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="height:44px;">Salvar</button>
+      </form>
+
+      <div style="margin-top:14px;">
+        <div style="font-weight:900; font-size:18px;">💵 Total do turno: <span style="color:#d35400;">R$ {{ "%.2f"|format(total_turno) }}</span></div>
+        <div style="opacity:.75; font-size:13px; margin-top:4px;">Soma de pedidos PRONTO + FECHADO do turno atual.</div>
+      </div>
+
+
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="/caixa?filtro=TODOS" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Todos</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=AGUARDANDO_CAIXA" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Aguardando</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=PENDENTE" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Cozinha</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=PRONTO" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Pronto</a>
+        <a class="btn btn-ghost" href="/caixa?filtro=FECHADO" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Fechado</a>
+      </div>
+
+      <hr style="margin:16px 0; opacity:.2;">
+
+      <h2 style="margin-bottom:10px;">➕ Novo pedido</h2>
+
+      <form action="/caixa/criar_pedido" method="POST" id="formNovoPedido">
+
+        <!-- ✅ FORMA DE PAGAMENTO (AGORA DENTRO DO FORM) -->
+        <div style="margin-top:10px;">
+          <label>Forma de pagamento</label>
+          <select name="forma_pagamento" required style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+            <option value="">Selecione...</option>
+            <option value="DINHEIRO">Dinheiro</option>
+            <option value="PIX">Pix</option>
+            <option value="DEBITO">Cartão Débito</option>
+            <option value="CREDITO">Cartão Crédito</option>
+            <option value="VALE">Vale</option>
+          </select>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top:10px;">
+          <div>
+            <label>Canal</label>
+            <select name="canal" id="canal" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+              <option value="BALCAO">Balcão</option>
+              <option value="DELIVERY">Delivery (AiqFome/Whats)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Destino</label>
+            <select name="destino" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,0.14);">
+              <option value="COZINHA">Cozinha</option>
+              <option value="BALCAO">Balcão (não cozinha)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Nome do cliente (opcional)</label>
+          <input type="text" name="cliente_nome" placeholder="Ex: João / Maria">
+        </div>
+
+        <div id="camposDelivery" style="display:none; margin-top:10px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr;">
+            <div>
+              <label>Telefone</label>
+              <input type="text" name="cliente_tel" placeholder="Ex: (19) 9xxxx-xxxx">
+            </div>
+            <div>
+              <label>Número</label>
+              <input type="text" name="cliente_numero" placeholder="Ex: 123">
+            </div>
+          </div>
+
+          <label style="margin-top:10px;">Rua</label>
+          <input type="text" name="endereco" placeholder="Ex: Rua Santo Antônio">
+
+          <label style="margin-top:10px;">Bairro</label>
+          <input type="text" name="cliente_bairro" placeholder="Ex: Centro">
+        </div>
+
+        <label style="margin-top:10px;">Observações do pedido</label>
+        <input type="text" name="observacoes" placeholder="Ex: sem cebola, tirar maionese...">
+
+        <hr style="margin:16px 0; opacity:.2;">
+
+        <h3 style="margin-bottom:10px;">🛒 Itens (normais)</h3>
+
+        {% for c in categorias %}
+          <details style="margin-bottom:10px;">
+            <summary style="font-weight:900; cursor:pointer;">{{ c.nome }}</summary>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
+              {% for p in produtos_por_categoria[c.id] %}
+                {% if p.pesado == 0 %}
+                <div class="produto" style="align-items:stretch;">
+                  <img class="produto-img" src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}">
+                  <div style="font-weight:900; font-size:16px;">{{ p.nome }}</div>
+                  <div class="produto-preco">R$ {{ "%.2f"|format(p.preco or 0) }}</div>
+
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="checkbox" name="item_id" value="{{ p.id }}" style="transform:scale(1.3); width:auto;">
+                    <div style="flex:1;">
+                      <label style="margin:0; opacity:.75;">Qtd</label>
+                      <input type="number" name="qtd_{{ p.id }}" value="1" min="1">
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endfor %}
+
+        {% if produtos_sem_categoria %}
+          <details style="margin-bottom:10px;">
+            <summary style="font-weight:900; cursor:pointer;">Sem categoria</summary>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
+              {% for p in produtos_sem_categoria %}
+                {% if p.pesado == 0 %}
+                <div class="produto" style="align-items:stretch;">
+                  <img class="produto-img" src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}">
+                  <div style="font-weight:900; font-size:16px;">{{ p.nome }}</div>
+                  <div class="produto-preco">R$ {{ "%.2f"|format(p.preco or 0) }}</div>
+
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="checkbox" name="item_id" value="{{ p.id }}" style="transform:scale(1.3); width:auto;">
+                    <div style="flex:1;">
+                      <label style="margin:0; opacity:.75;">Qtd</label>
+                      <input type="number" name="qtd_{{ p.id }}" value="1" min="1">
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </details>
+        {% endif %}
+
+        <hr style="margin:16px 0; opacity:.2;">
+
+        <h3 style="margin-bottom:10px;">⚖️ Pesáveis (digitar valor)</h3>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+          {% for c in categorias %}
+            {% for p in produtos_por_categoria[c.id] %}
+              {% if p.pesado == 1 %}
+                <div class="card" style="padding:12px;">
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <img src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}" style="width:54px;height:54px;border-radius:16px;object-fit:cover;">
+                    <div style="flex:1;">
+                      <div style="font-weight:900;">{{ p.nome }}</div>
+                      <div style="opacity:.75; font-size:12px;">{{ c.nome }}</div>
+                    </div>
+                    <input type="checkbox" name="pesado_id" value="{{ p.id }}" style="transform:scale(1.3); width:auto;">
+                  </div>
+                  <label style="margin-top:10px;">Valor (R$)</label>
+                  <input type="number" step="0.01" min="0" name="valor_{{ p.id }}" placeholder="Ex: 12.50">
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+
+        <button class="btn btn-primary" style="margin-top:14px;">✅ Criar pedido</button>
+      </form>
+
+      <hr style="margin:16px 0; opacity:.2;">
+
+      <form action="/fechar_turno" method="POST" onsubmit="return confirm('Você tem certeza que quer fechar o turno?\\nTodos os pedidos serão apagados e resetados.');">
+        <input type="hidden" name="turno" value="{{ turno }}">
+        <button class="danger">⚠️ Fechar turno (apagar tudo)</button>
+      </form>
+
+    </div>
+
+    <!-- COLUNA DIREITA -->
+    <div class="card">
+      <h2 style="margin-bottom:10px;">📌 Pedidos ({{ filtro }})</h2>
+
+      {% if pedidos|length == 0 %}
+        <div class="empty-state">
+          <div class="empty-emoji">🧾</div>
+          <div style="font-weight:900; font-size:18px;">Nenhum pedido aqui</div>
+          <div style="opacity:.75;">Quando chegar pedido, ele aparece automaticamente.</div>
+        </div>
+      {% endif %}
+
+      {% for p in pedidos %}
+        <div class="ticket" style="margin-top:12px;">
+          <div class="ticket-head">
+            <div>
+              <div class="ticket-id">Pedido #{{ p.id }}</div>
+              <div class="ticket-badge">
+                {{ p.status }}
+                {% if p.canal == 'DELIVERY' %} • DELIVERY{% endif %}
+                {% if p.destino == 'BALCAO' %} • BALCÃO{% endif %}
+              </div>
+
+              <!-- ✅ MOSTRA PAGAMENTO (SE EXISTIR) -->
+              {% if p.forma_pagamento %}
+                <div style="margin-top:6px; font-size:13px; font-weight:900; opacity:.9;">
+                  💳 Pagamento: {{ p.forma_pagamento }}
+                </div>
+              {% endif %}
+
+              {% if p.canal == 'DELIVERY' %}
+                {% if (p.cliente_nome or p.endereco or p.cliente_tel or p.cliente_numero or p.cliente_bairro) %}
+                  <div style="margin-top:8px; font-size:14px; font-weight:800;">
+                    👤 {{ p.cliente_nome or "-" }}<br>
+                    {% if p.cliente_tel %}📞 {{ p.cliente_tel }}<br>{% endif %}
+                    📍 {{ p.endereco or "-" }}
+                    {% if p.cliente_numero %}, {{ p.cliente_numero }}{% endif %}
+                    {% if p.cliente_bairro %} - {{ p.cliente_bairro }}{% endif %}
+                  </div>
+                {% endif %}
+              {% else %}
+                {% if p.cliente_nome %}
+                  <div style="margin-top:8px; font-size:14px; font-weight:800;">
+                    👤 {{ p.cliente_nome }}
+                  </div>
+                {% endif %}
+              {% endif %}
+            </div>
+
+            <div style="text-align:right;">
+              <div style="font-weight:900; font-size:18px; color:#d35400;">R$ {{ "%.2f"|format(p.total or 0) }}</div>
+              <div style="opacity:.7; font-size:12px;">Turno: {{ p.turno }}</div>
+            </div>
+          </div>
+
+          <div class="ticket-body">
+            <div class="ticket-title">Itens</div>
+            <div class="ticket-itens">
+              {% for it in pedido_itens[p.id] %}
+                • {{ it.nome }}
+                {% if it.pesado_valor %}
+                  (R$ {{ "%.2f"|format(it.pesado_valor or 0) }})
+                {% else %}
+                  x{{ it.quantidade }} (R$ {{ "%.2f"|format(it.subtotal or 0) }})
+                {% endif %}
+                <br>
+              {% endfor %}
+            </div>
+
+            {% if p.observacoes %}
+              <div style="margin-top:10px; font-weight:900;">📝 Obs:</div>
+              <div style="opacity:.9;">{{ p.observacoes }}</div>
+            {% endif %}
+
+            <form action="/caixa/atualizar_obs/{{ p.id }}" method="POST" style="margin-top:10px;">
+              <input type="text" name="observacoes" placeholder="Editar observações..." value="{{ p.observacoes or '' }}">
+              <button class="btn btn-ghost" style="margin-top:8px;">Salvar obs</button>
+            </form>
+          </div>
+
+          <div class="ticket-actions">
+
+            <a href="/caixa/editar/{{ p.id }}" class="btn btn-ghost" style="width:100%;">
+  ✏️ Editar pedido
+</a>
+
+            {% if p.status == 'AGUARDANDO_CAIXA' %}
+              <form action="/caixa/liberar_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-primary" type="submit">➡️ Liberar p/ cozinha</button>
+              </form>
+              <form action="/caixa/liberar_imprimir_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🖨️ Liberar + imprimir</button>
+              </form>
+
+            {% elif p.status == 'PENDENTE' %}
+              <form action="/caixa/marcar_pronto/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-primary" type="submit">✅ Marcar PRONTO</button>
+              </form>
+
+              <form action="/imprimir_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🖨️ Imprimir</button>
+              </form>
+
+            {% elif p.status == 'PRONTO' %}
+              <form action="/caixa/fechar_pedido/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-primary" type="submit">💰 Fechar pedido</button>
+              </form>
+
+              <form action="/imprimir_cozinha/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🖨️ Imprimir</button>
+              </form>
+
+            {% else %}
+              <form action="/caixa/remover_pedido/{{ p.id }}" method="POST" style="width:100%;" onsubmit="return confirm('Remover pedido do histórico?');">
+                <button class="btn btn-ghost" type="submit">🗑️ Remover</button>
+              </form>
+              <form action="/caixa/cancelar_pedido/{{ p.id }}" method="POST" style="width:100%;">
+                <button class="btn btn-ghost" type="submit">🚫 Cancelar</button>
+              </form>
+            {% endif %}
+
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const canalSel = document.getElementById("canal");
+  const camposDelivery = document.getElementById("camposDelivery");
+
+  function toggleDelivery(){
+    camposDelivery.style.display = (canalSel.value === "DELIVERY") ? "block" : "none";
+  }
+  canalSel.addEventListener("change", toggleDelivery);
+  toggleDelivery();
+
+  const socket = io();
+  socket.on("pedido_caixa_novo", () => { location.reload(); });
+  socket.on("pedido_caixa_atualizado", () => { location.reload(); });
+  socket.on("pedido_caixa_removido", () => { location.reload(); });
+  socket.on("turno_fechado", () => { location.reload(); });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,521 @@
+/* =========================
+   RESET + BASE
+========================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+body {
+    background: #f5f3ef;
+    color: #333;
+    min-height: 100vh;
+}
+
+body.dark {
+    background: #141414;
+    color: #eee;
+}
+
+/* =========================
+   BOTÃO TEMA
+========================= */
+.toggle-theme {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    border: none;
+    background: #222;
+    color: #fff;
+    font-size: 18px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+}
+
+body.dark .toggle-theme {
+    background: #eee;
+    color: #111;
+}
+
+/* =========================
+   CONTAINER
+========================= */
+.container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 18px;
+}
+
+/* =========================
+   TOPBAR (COZINHA)
+========================= */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(245,243,239,0.72);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+body.dark .topbar {
+    background: rgba(20,20,20,0.72);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.topbar-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #d35400, #e67e22);
+    color: #fff;
+    font-size: 22px;
+    box-shadow: 0 12px 28px rgba(214, 110, 0, 0.25);
+}
+
+.brand-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
+.brand-sub {
+    font-size: 13px;
+    opacity: 0.75;
+}
+
+/* KPI */
+.kpi {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.kpi-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 10px 12px;
+    min-width: 110px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+body.dark .kpi-card {
+    background: #1f1f1f;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+
+.kpi-label {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 2px;
+}
+
+.kpi-value {
+    font-size: 20px;
+    font-weight: 900;
+}
+
+/* =========================
+   BANNER (INDEX)
+========================= */
+.banner {
+    background: linear-gradient(135deg, #d35400, #e67e22);
+    color: white;
+    padding: 40px 20px;
+    text-align: center;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+.banner h1 {
+    font-size: 38px;
+    margin-bottom: 10px;
+}
+
+.banner p {
+    font-size: 18px;
+    opacity: 0.95;
+}
+
+/* =========================
+   GRID DE PRODUTOS (INDEX/ADMIN)
+========================= */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.produto {
+    background: #fff;
+    border-radius: 18px;
+    padding: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.produto:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 26px rgba(0,0,0,0.12);
+}
+
+body.dark .produto {
+    background: #1f1f1f;
+}
+
+.produto-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 14px;
+    margin-bottom: 10px;
+}
+
+.produto-titulo {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 8px 0;
+    cursor: pointer;
+}
+
+.produto-titulo input {
+    margin-right: 6px;
+    transform: scale(1.2);
+}
+
+.produto-preco {
+    font-size: 20px;
+    font-weight: 900;
+    color: #d35400;
+    margin-bottom: 8px;
+}
+
+.produto-qtd {
+    font-size: 14px;
+}
+
+.produto-qtd input {
+    width: 70px;
+    padding: 6px;
+    font-size: 16px;
+    margin-left: 6px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+
+body.dark .produto-qtd input {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: #141414;
+    color: #eee;
+}
+
+/* =========================
+   TOTAL (INDEX)
+========================= */
+.total-area {
+    margin-top: 25px;
+    padding: 18px;
+    background: #fff;
+    border-radius: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+body.dark .total-area {
+    background: #1f1f1f;
+}
+
+.total-area h2 {
+    font-size: 26px;
+    font-weight: 900;
+}
+
+.total-area button {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    font-size: 18px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform .12s ease, opacity .2s;
+    box-shadow: 0 12px 28px rgba(39, 174, 96, 0.25);
+}
+
+.total-area button:hover {
+    transform: translateY(-1px);
+    opacity: 0.96;
+}
+
+/* =========================
+   FORM / ADMIN
+========================= */
+.card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+body.dark .card {
+    background: #1f1f1f;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="file"],
+input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.14);
+    font-size: 16px;
+}
+
+body.dark input {
+    background: #141414;
+    color: #eee;
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+button {
+    border: none;
+    cursor: pointer;
+}
+
+/* tags */
+.tag {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.tag.normal {
+    background: rgba(39,174,96,0.14);
+    color: #1e8e52;
+}
+
+.tag.pesado {
+    background: rgba(52,152,219,0.14);
+    color: #2474a9;
+}
+
+.danger {
+    margin-top: 10px;
+    background: #e74c3c;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 14px;
+    width: 100%;
+    font-weight: 800;
+}
+
+/* =========================
+   COZINHA (TICKETS)
+========================= */
+.kitchen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.ticket {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.10);
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+
+body.dark .ticket {
+    background: #1f1f1f;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.38);
+}
+
+.ticket-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 14px 10px 14px;
+    background: linear-gradient(135deg, rgba(211,84,0,0.14), rgba(230,126,34,0.08));
+}
+
+body.dark .ticket-head {
+    background: linear-gradient(135deg, rgba(211,84,0,0.22), rgba(230,126,34,0.12));
+}
+
+.ticket-id {
+    font-weight: 900;
+    font-size: 18px;
+}
+
+.ticket-badge {
+    margin-top: 6px;
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 12px;
+    background: rgba(241, 196, 15, 0.20);
+    color: #8a6d00;
+}
+
+.ticket-thumbs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+
+body.dark .thumb {
+    border: 1px solid rgba(255,255,255,0.10);
+}
+
+.ticket-body {
+    padding: 14px;
+}
+
+.ticket-title {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+    opacity: 0.75;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.ticket-itens {
+    font-size: 16px;
+    line-height: 1.35;
+    font-weight: 650;
+}
+
+.ticket-actions {
+    display: flex;
+    gap: 10px;
+    padding: 14px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+body.dark .ticket-actions {
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.btn {
+    padding: 12px 14px;
+    border-radius: 16px;
+    font-weight: 900;
+    font-size: 14px;
+    width: 100%;
+}
+
+.btn-primary {
+    background: #27ae60;
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(39, 174, 96, 0.22);
+}
+
+.btn-ghost {
+    background: rgba(0,0,0,0.06);
+    color: inherit;
+}
+
+body.dark .btn-ghost {
+    background: rgba(255,255,255,0.08);
+}
+
+/* empty state */
+.empty-state {
+    grid-column: 1 / -1;
+    background: #fff;
+    border-radius: 22px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.10);
+}
+
+body.dark .empty-state {
+    background: #1f1f1f;
+}
+
+.empty-emoji {
+    font-size: 46px;
+    margin-bottom: 10px;
+}
+
+/* =========================
+   LINKS
+========================= */
+a {
+    color: #d35400;
+    text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 600px) {
+    .banner h1 { font-size: 28px; }
+    .total-area { flex-direction: column; gap: 12px; }
+    .kpi { display: none; }
+}

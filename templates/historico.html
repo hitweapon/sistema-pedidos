@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Histórico • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<button class="toggle-theme" onclick="document.body.classList.toggle('dark')">🌓</button>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🗂️</div>
+      <div>
+        <div class="brand-title">Histórico (até 3 meses)</div>
+        <div class="brand-sub">{{ nome_estabelecimento }}</div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-card">
+        <div class="kpi-label">Total período</div>
+        <div class="kpi-value">R$ {{ "%.2f"|format(total_periodo) }}</div>
+      </div>
+
+      <a class="kpi-card" href="/caixa" style="text-decoration:none; color:inherit;">
+        <div class="kpi-label">Voltar</div>
+        <div class="kpi-value">↩️ Caixa</div>
+      </a>
+
+      <!-- LIMPAR HISTÓRICO -->
+      <form action="/historico/limpar" method="POST"
+            onsubmit="return confirm('Apagar TODO o histórico?');"
+            style="margin:0;">
+        <button class="danger" type="submit" style="height:56px;">
+          🧹 Limpar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <form method="GET" style="display:grid; grid-template-columns: 1fr 180px 180px 140px; gap:10px; align-items:end;">
+      <div>
+        <label>Buscar (nome, tel, endereço, obs)</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="Ex: Maria, 19..., Rua...">
+      </div>
+
+      <div>
+        <label>Canal</label>
+        <select name="canal" style="width:100%; padding:10px 12px; border-radius:12px;">
+          <option value="TODOS" {% if canal=="TODOS" %}selected{% endif %}>Todos</option>
+          <option value="BALCAO" {% if canal=="BALCAO" %}selected{% endif %}>Balcão</option>
+          <option value="DELIVERY" {% if canal=="DELIVERY" %}selected{% endif %}>Delivery</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Status</label>
+        <select name="status" style="width:100%; padding:10px 12px; border-radius:12px;">
+          <option value="TODOS" {% if status=="TODOS" %}selected{% endif %}>Todos</option>
+          <option value="AGUARDANDO_CAIXA" {% if status=="AGUARDANDO_CAIXA" %}selected{% endif %}>Aguardando</option>
+          <option value="PENDENTE" {% if status=="PENDENTE" %}selected{% endif %}>Cozinha</option>
+          <option value="PRONTO" {% if status=="PRONTO" %}selected{% endif %}>Pronto</option>
+          <option value="FECHADO" {% if status=="FECHADO" %}selected{% endif %}>Fechado</option>
+          <option value="CANCELADO" {% if status=="CANCELADO" %}selected{% endif %}>Cancelado</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" type="submit">🔎 Filtrar</button>
+    </form>
+
+    <div style="opacity:.7; margin-top:10px; font-size:13px;">
+      Dica: use “Buscar” para achar rápido por nome, telefone, rua ou observação.
+    </div>
+  </div>
+
+  <div style="height:14px;"></div>
+
+  {% if pedidos|length == 0 %}
+    <div class="empty-state">
+      <div class="empty-emoji">📦</div>
+      <h2>Nada encontrado</h2>
+      <p>Tente mudar o filtro ou a busca.</p>
+    </div>
+  {% endif %}
+
+  <div class="kitchen-grid">
+    {% for p in pedidos %}
+      <div class="ticket">
+        <div class="ticket-head">
+          <div>
+            <div class="ticket-id">Pedido #{{ p.id }}</div>
+            <div class="ticket-badge">{{ p.status }} • {{ p.turno }} • {{ p.canal }}</div>
+          </div>
+
+          <div style="text-align:right;">
+            <div style="font-weight:900;">
+              R$ {{ "%.2f"|format(p.total or 0) }}
+            </div>
+
+            <!-- REMOVER DO HISTÓRICO -->
+            <form action="/historico/remover/{{ p.id }}" method="POST"
+                  onsubmit="return confirm('Remover este pedido do histórico?');"
+                  style="margin-top:8px;">
+              <button class="btn btn-ghost" type="submit" style="padding:8px 10px;">
+                🗑️ Remover
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="ticket-body">
+          <div class="ticket-title">Dados</div>
+          <div style="line-height:1.35;">
+            <b>Data:</b> {{ p.criado_em }}<br>
+            {% if p.cliente_nome %}<b>Cliente:</b> {{ p.cliente_nome }}<br>{% endif %}
+            {% if p.cliente_tel %}<b>Tel:</b> {{ p.cliente_tel }}<br>{% endif %}
+            {% if p.endereco %}<b>Endereço:</b> {{ p.endereco }}<br>{% endif %}
+            {% if p.observacoes %}<b>Obs:</b> {{ p.observacoes }}<br>{% endif %}
+          </div>
+
+          <div style="margin-top:12px;" class="ticket-title">Itens</div>
+          <div class="ticket-itens">
+            {% for it in pedido_itens[p.id] %}
+              • {{ it.nome }} x{{ it.quantidade }} (R$ {{ "%.2f"|format(it.subtotal or 0) }})<br>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+</body>
+</html>
