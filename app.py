@@ -430,8 +430,13 @@ def build_ticket_bytes(pedido_row, itens_rows, prato1: str, prato2: str) -> byte
             out += CMD_BOLD_ON + _line(ln) + CMD_BOLD_OFF
         out += _line("-" * COLS)
 
-    # ===== SUBTOTAL + TOTAL =====
-    out += _line(_lr("SUBTOTAL:", f"R$ {money(total)}", COLS))
+    # ===== TAXA DE ENTREGA =====
+    taxa_entrega = float(pedido_row["taxa_entrega"] or 0) if "taxa_entrega" in pedido_row.keys() else 0.0
+    if taxa_entrega > 0:
+        out += _line(_lr("TAXA ENTREGA:", f"R$ {money(taxa_entrega)}", COLS))
+
+    # ===== TOTAL =====
+    out += _line(_lr("TOTAL:", f"R$ {money(total)}", COLS))
     out += _line("=" * COLS)
 
     out += CMD_ALIGN_CENTER
@@ -566,6 +571,28 @@ def set_prato_do_dia_opts(p1: str, p2: str):
     finally:
         conn.close()
 
+def get_taxa_entrega() -> float:
+    conn = db_conn()
+    try:
+        try:
+            return max(0.0, float(get_config_value(conn, "taxa_entrega", "0") or 0))
+        except (TypeError, ValueError):
+            return 0.0
+    finally:
+        conn.close()
+
+def set_taxa_entrega(valor: str):
+    try:
+        taxa = max(0.0, float((valor or "0").replace(",", ".")))
+    except (TypeError, ValueError):
+        taxa = 0.0
+    conn = db_conn()
+    try:
+        set_config_value(conn, "taxa_entrega", f"{taxa:.2f}")
+        conn.commit()
+    finally:
+        conn.close()
+
 def ensure_schema():
     conn = db_conn()
     cur = conn.cursor()
@@ -687,6 +714,8 @@ def ensure_schema():
     # >>> NOVO: garante coluna forma_pagamento (caso DB antigo)
     _ensure_column(conn, "pedidos", "forma_pagamento", "TEXT")
     _ensure_column(conn, "historico_pedidos", "forma_pagamento", "TEXT")
+    _ensure_column(conn, "pedidos", "taxa_entrega", "REAL DEFAULT 0")
+    _ensure_column(conn, "historico_pedidos", "taxa_entrega", "REAL DEFAULT 0")
 
     row = cur.execute("SELECT valor FROM config_app WHERE chave='turno_atual'").fetchone()
     if not row:
@@ -699,6 +728,10 @@ def ensure_schema():
     row = cur.execute("SELECT valor FROM config_app WHERE chave='prato_do_dia_2'").fetchone()
     if not row:
         cur.execute("INSERT OR REPLACE INTO config_app (chave, valor) VALUES ('prato_do_dia_2', '')")
+
+    row = cur.execute("SELECT valor FROM config_app WHERE chave='taxa_entrega'").fetchone()
+    if not row:
+        cur.execute("INSERT OR REPLACE INTO config_app (chave, valor) VALUES ('taxa_entrega', '0.00')")
 
     conn.commit()
     conn.close()
@@ -792,12 +825,12 @@ def mover_pedido_para_historico(conn, pedido_id, fechado_em=None):
         INSERT OR REPLACE INTO historico_pedidos
         (id, criado_em, fechado_em, turno, status, destino, canal,
          cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
-         observacoes, total, forma_pagamento)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         observacoes, total, forma_pagamento, taxa_entrega)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         p["id"], p["criado_em"], fechado_em, p["turno"], p["status"], p["destino"], p["canal"],
         p["cliente_nome"], p["cliente_tel"], p["endereco"], p["cliente_numero"], p["cliente_bairro"],
-        p["observacoes"], p["total"], (p["forma_pagamento"] or "")
+        p["observacoes"], p["total"], (p["forma_pagamento"] or ""), (p["taxa_entrega"] or 0)
     ))
 
     itens = itens_do_pedido(conn, pedido_id)
@@ -942,7 +975,8 @@ def prato_do_dia_page():
         "prato_do_dia.html",
         nome_estabelecimento=NOME_ESTAB,
         prato_do_dia_1=p1,
-        prato_do_dia_2=p2
+        prato_do_dia_2=p2,
+        taxa_entrega=get_taxa_entrega()
     )
 
 @app.route("/prato_do_dia/salvar", methods=["POST"])
@@ -951,7 +985,8 @@ def prato_do_dia_salvar():
     p1 = request.form.get("prato_do_dia_1") or ""
     p2 = request.form.get("prato_do_dia_2") or ""
     set_prato_do_dia_opts(p1, p2)
-    return redirect("/caixa")
+    set_taxa_entrega(request.form.get("taxa_entrega") or "0")
+    return redirect("/prato_do_dia")
 
 # =====================
 # ADMIN
@@ -1202,6 +1237,7 @@ def caixa():
         turno=turno,
         filtro=filtro,
         clientes=clientes,
+        taxa_entrega=get_taxa_entrega(),
         categorias=categorias,
         produtos_por_categoria=produtos_por_categoria,
         produtos_sem_categoria=produtos_sem_categoria,
@@ -1247,6 +1283,8 @@ def caixa_criar_pedido():
             cliente_numero = cliente_numero or saved["numero"] or ""
             cliente_bairro = cliente_bairro or saved["bairro"] or ""
     observacoes = (request.form.get("observacoes") or "").strip()
+    cobrar_taxa = (request.form.get("cobrar_taxa") == "1" and canal == "DELIVERY")
+    taxa_entrega = get_taxa_entrega() if cobrar_taxa else 0.0
 
     # >>> NOVO: forma de pagamento
     forma_pagamento = normalize_pagamento(request.form.get("forma_pagamento") or "")
@@ -1258,13 +1296,13 @@ def caixa_criar_pedido():
         INSERT INTO pedidos (
           criado_em, turno, status, destino, canal,
           cliente_id, cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
-          observacoes, total, forma_pagamento
+          observacoes, total, forma_pagamento, taxa_entrega
         )
-        VALUES (?, ?, 'AGUARDANDO_CAIXA', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        VALUES (?, ?, 'AGUARDANDO_CAIXA', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     """, (
         now_str(), turno, destino, canal,
         cliente_id, cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
-        observacoes, forma_pagamento
+        observacoes, forma_pagamento, taxa_entrega
     ))
     pedido_id = cur.lastrowid
 
@@ -1294,7 +1332,8 @@ def caixa_criar_pedido():
                 VALUES (?, ?, ?, 1, ?, ?)
             """, (pedido_id, pr["id"], pr["nome"], valor, valor))
 
-    total = calcular_total_itens(conn, pedido_id)
+    total_itens = calcular_total_itens(conn, pedido_id)
+    total = total_itens + taxa_entrega
     cur.execute("UPDATE pedidos SET total=? WHERE id=?", (total, pedido_id))
     conn.commit()
 
