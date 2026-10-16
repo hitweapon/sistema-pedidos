@@ -120,9 +120,16 @@
           </div>
         </div>
 
+        <input type="hidden" name="cliente_id" id="clienteIdSelecionado" value="">
+        <div class="customer-picker">
+          <div class="customer-picker-title"><label for="clienteBusca">Cliente</label><button type="button" class="customer-add-trigger" id="abrirNovoCliente">＋ Novo cliente</button></div>
+          <input type="search" id="clienteBusca" list="clientesCadastrados" placeholder="Buscar por nome ou telefone..." autocomplete="off">
+          <datalist id="clientesCadastrados">{% for cliente in clientes %}<option value="{{ cliente.nome }}{% if cliente.telefone %} — {{ cliente.telefone }}{% endif %}" data-id="{{ cliente.id }}"></option>{% endfor %}</datalist>
+          <div class="customer-picked-note" id="clienteSelecionadoNota">Cliente opcional para balcão; selecione ou cadastre para preencher os dados rapidamente.</div>
+        </div>
         <div style="margin-top:10px;">
-          <label>Nome do cliente (opcional)</label>
-          <input type="text" name="cliente_nome" placeholder="Ex: João / Maria">
+          <label>Nome do cliente</label>
+          <input type="text" name="cliente_nome" id="clienteNome" placeholder="Nome do cliente">
         </div>
 
         <div id="camposDelivery" style="display:none; margin-top:10px;">
@@ -147,9 +154,18 @@
         <label style="margin-top:10px;">Observações do pedido</label>
         <input type="text" name="observacoes" placeholder="Ex: sem cebola, tirar maionese...">
 
+        <div class="customer-create-panel" id="novoClientePanel" hidden>
+          <div class="customer-create-card">
+            <div class="customer-create-head"><div><strong>Cadastrar cliente</strong><small>Salve os dados para reutilizar nos próximos pedidos.</small></div><button type="button" id="fecharNovoCliente" aria-label="Fechar">✕</button></div>
+            <div class="customer-create-grid"><div class="wide"><label>Nome *</label><input id="novoClienteNome" type="text" placeholder="Nome do cliente"></div><div><label>Telefone</label><input id="novoClienteTelefone" type="text" placeholder="Telefone"></div><div><label>Rua / endereço</label><input id="novoClienteEndereco" type="text" placeholder="Rua"></div><div><label>Número</label><input id="novoClienteNumero" type="text" placeholder="Número"></div><div><label>Bairro</label><input id="novoClienteBairro" type="text" placeholder="Bairro"></div></div>
+            <div class="customer-create-actions"><button type="button" class="btn btn-ghost" id="cancelarNovoCliente">Cancelar</button><button type="button" class="btn btn-primary" id="salvarNovoCliente">Salvar cliente</button></div><div class="customer-create-feedback" id="novoClienteFeedback"></div>
+          </div>
+        </div>
         <hr style="margin:16px 0; opacity:.2;">
-
-        <h3 style="margin-bottom:10px;">🛒 Itens (normais)</h3>
+        <div class="product-picker-heading"><div><h3 style="margin:0;">🛒 Produtos</h3><small>Pesquise ou escolha uma categoria.</small></div><span id="produtoSelecionadoCount">0 itens</span></div>
+        <input class="cashier-product-search" type="search" id="buscaProdutosCaixa" placeholder="🔎 Buscar produto pelo nome..." autocomplete="off">
+        <div class="cashier-category-tabs" id="abasCategorias"><button type="button" class="active" data-category="all">Todos</button>{% for c in categorias %}<button type="button" data-category="{{ c.id }}">{{ c.nome }}</button>{% endfor %}{% if produtos_sem_categoria %}<button type="button" data-category="none">Sem categoria</button>{% endif %}</div>
+        <h3 style="margin-bottom:10px;">Itens (normais)</h3>
 
         {% for c in categorias %}
           <details style="margin-bottom:10px;">
@@ -157,7 +173,7 @@
             <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
               {% for p in produtos_por_categoria[c.id] %}
                 {% if p.pesado == 0 %}
-                <div class="produto" style="align-items:stretch;">
+                <div class="produto cashier-product-card" data-category="{{ c.id }}" data-product-name="{{ p.nome|lower }}" style="align-items:stretch;">
                   <img class="produto-img" src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}">
                   <div style="font-weight:900; font-size:16px;">{{ p.nome }}</div>
                   <div class="produto-preco">R$ {{ "%.2f"|format(p.preco or 0) }}</div>
@@ -182,7 +198,7 @@
             <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
               {% for p in produtos_sem_categoria %}
                 {% if p.pesado == 0 %}
-                <div class="produto" style="align-items:stretch;">
+                <div class="produto cashier-product-card" data-category="none" data-product-name="{{ p.nome|lower }}" style="align-items:stretch;">
                   <img class="produto-img" src="{{ url_for('static', filename='img/' + (p.imagem or 'default.png')) }}">
                   <div style="font-weight:900; font-size:16px;">{{ p.nome }}</div>
                   <div class="produto-preco">R$ {{ "%.2f"|format(p.preco or 0) }}</div>
@@ -377,6 +393,68 @@
   }
   canalSel.addEventListener("change", toggleDelivery);
   toggleDelivery();
+
+  // Busca e filtro de produtos sem alterar os nomes dos campos esperados pelo backend.
+  const productSearch = document.getElementById('buscaProdutosCaixa');
+  const categoryTabs = document.getElementById('abasCategorias');
+  const productCards = Array.from(document.querySelectorAll('.cashier-product-card'));
+  let activeCategory = 'all';
+  function filterCashierProducts(){
+    const query = (productSearch?.value || '').trim().toLocaleLowerCase('pt-BR');
+    productCards.forEach(card => {
+      const categoryMatch = activeCategory === 'all' || card.dataset.category === activeCategory;
+      const nameMatch = (card.dataset.productName || '').toLocaleLowerCase('pt-BR').includes(query);
+      card.hidden = !(categoryMatch && nameMatch);
+    });
+    document.querySelectorAll('.cashier-product-card').forEach(card => { if(card.hidden) card.style.display='none'; else card.style.display='flex'; });
+  }
+  productSearch?.addEventListener('input', filterCashierProducts);
+  categoryTabs?.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    activeCategory = btn.dataset.category || 'all';
+    categoryTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    filterCashierProducts();
+  }));
+  filterCashierProducts();
+
+  // Seleção e cadastro de clientes.
+  const customers = {{ clientes|tojson }};
+  const customerSearch = document.getElementById('clienteBusca');
+  const customerId = document.getElementById('clienteIdSelecionado');
+  const customerName = document.getElementById('clienteNome');
+  const customerNote = document.getElementById('clienteSelecionadoNota');
+  function selectCustomerFromSearch(){
+    const value = customerSearch.value.trim();
+    const found = customers.find(c => value === (c.nome + (c.telefone ? ' — ' + c.telefone : '')) || value === c.nome || (c.telefone && value === c.telefone));
+    if(!found){ customerId.value=''; return; }
+    customerId.value=found.id; customerName.value=found.nome || '';
+    const tel=document.querySelector('[name="cliente_tel"]'); if(tel) tel.value=found.telefone || '';
+    const address=document.querySelector('[name="endereco"]'); if(address) address.value=found.endereco || '';
+    const number=document.querySelector('[name="cliente_numero"]'); if(number) number.value=found.numero || '';
+    const neighborhood=document.querySelector('[name="cliente_bairro"]'); if(neighborhood) neighborhood.value=found.bairro || '';
+    customerNote.textContent='Cliente selecionado: ' + found.nome;
+  }
+  customerSearch?.addEventListener('change', selectCustomerFromSearch);
+  customerSearch?.addEventListener('input', () => { if(!customerSearch.value.trim()){customerId.value=''; customerNote.textContent='Cliente opcional para balcão; selecione ou cadastre para preencher os dados rapidamente.';} });
+  const customerPanel=document.getElementById('novoClientePanel');
+  const openCustomer=()=>{customerPanel.hidden=false; document.getElementById('novoClienteNome').focus();};
+  const closeCustomer=()=>{customerPanel.hidden=true; document.getElementById('novoClienteFeedback').textContent='';};
+  document.getElementById('abrirNovoCliente')?.addEventListener('click',openCustomer);
+  document.getElementById('fecharNovoCliente')?.addEventListener('click',closeCustomer);
+  document.getElementById('cancelarNovoCliente')?.addEventListener('click',closeCustomer);
+  document.getElementById('salvarNovoCliente')?.addEventListener('click',async()=>{
+    const payload={nome:document.getElementById('novoClienteNome').value.trim(),telefone:document.getElementById('novoClienteTelefone').value.trim(),endereco:document.getElementById('novoClienteEndereco').value.trim(),numero:document.getElementById('novoClienteNumero').value.trim(),bairro:document.getElementById('novoClienteBairro').value.trim()};
+    const feedback=document.getElementById('novoClienteFeedback');
+    if(!payload.nome){feedback.textContent='Informe o nome do cliente.';return;}
+    const button=document.getElementById('salvarNovoCliente'); button.disabled=true; feedback.textContent='Salvando...';
+    try{
+      const response=await fetch('/clientes/criar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const result=await response.json(); if(!response.ok || !result.ok) throw new Error(result.erro || 'Não foi possível salvar.');
+      const c=result.cliente; customers.push(c);
+      const option=document.createElement('option'); option.value=c.nome+(c.telefone?' — '+c.telefone:''); option.dataset.id=c.id; document.getElementById('clientesCadastrados').appendChild(option);
+      customerSearch.value=option.value; selectCustomerFromSearch(); closeCustomer();
+      ['novoClienteNome','novoClienteTelefone','novoClienteEndereco','novoClienteNumero','novoClienteBairro'].forEach(id=>document.getElementById(id).value='');
+    }catch(error){feedback.textContent=error.message || 'Erro ao salvar cliente.';}finally{button.disabled=false;}
+  });
 
   const socket = io();
   socket.on("pedido_caixa_novo", () => { location.reload(); });
