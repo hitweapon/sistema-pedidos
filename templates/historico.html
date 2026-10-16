@@ -198,7 +198,7 @@
   });
   function openModal(){modal.hidden=false;search.value='';filterProducts();syncChecks();search.focus();}
   function closeModal(){modal.hidden=true;}
-  function filterProducts(){const q=search.value.trim().toLocaleLowerCase('pt-BR');list.querySelectorAll('.product-option').forEach(label=>{label.hidden=!label.dataset.name.includes(q);});}
+  function filterProducts(){const q=search.value.trim().toLocaleLowerCase('pt-BR');list.querySelectorAll('.product-option').forEach(label=>{const matches=label.dataset.name.toLocaleLowerCase('pt-BR').includes(q);label.hidden=!matches;label.style.display=matches?'flex':'none';});}
   document.getElementById('produtosAbrir').addEventListener('click',openModal);
   document.getElementById('produtosTodos').addEventListener('click',()=>{selected.clear();renderSelected();syncChecks();});
   document.getElementById('produtosFechar').addEventListener('click',closeModal);
