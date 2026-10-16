@@ -1191,7 +1191,7 @@ def caixa():
     conn.close()
 
     conn_clientes = db_conn()
-    clientes = conn_clientes.execute("SELECT * FROM clientes ORDER BY nome COLLATE NOCASE").fetchall()
+    clientes = [dict(row) for row in conn_clientes.execute("SELECT * FROM clientes ORDER BY nome COLLATE NOCASE").fetchall()]
     conn_clientes.close()
 
     prato1, prato2 = get_prato_do_dia_opts()
