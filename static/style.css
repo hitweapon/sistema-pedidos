@@ -848,3 +848,12 @@ body { background:var(--emp-bg); color:var(--emp-ink); font-family:"Segoe UI",Ar
  .new-order-panel[open]>summary{padding:16px!important}
  .new-order-panel[open]>form{padding:15px!important}
 }
+
+
+/* Fix: scrolling belongs to the order dialog, not the page behind it. */
+body.order-modal-open{overflow:hidden!important;height:100%!important;overscroll-behavior:none!important}
+.new-order-panel[open]{position:fixed!important;left:2vw!important;right:2vw!important;top:2vh!important;bottom:auto!important;width:96vw!important;height:96vh!important;max-height:96vh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+.new-order-panel[open]>summary{flex:0 0 auto!important;width:100%!important;box-sizing:border-box!important}
+.new-order-panel[open]>form#formNovoPedido{flex:1 1 0!important;height:0!important;min-height:0!important;max-height:calc(96vh - 72px)!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
+.cashier-category-panel[hidden],.cashier-category-panel.category-hidden-by-filter{display:none!important}
+@media(max-width:700px){.new-order-panel[open]{left:0!important;right:0!important;top:0!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}.new-order-panel[open]>form#formNovoPedido{max-height:calc(100dvh - 66px)!important}}
