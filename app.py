@@ -1509,17 +1509,6 @@ def historico():
         params.extend([like, like, like, like, like, like, like])
     where = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
-    pedidos = cur.execute(
-        f"SELECT * FROM historico_pedidos {where} ORDER BY criado_em DESC, id DESC LIMIT 5000",
-        tuple(params)
-    ).fetchall()
-
-    pedido_itens = {}
-    for p in pedidos:
-        pedido_itens[p["id"]] = cur.execute(
-            "SELECT * FROM historico_itens WHERE pedido_id=? ORDER BY id ASC", (p["id"],)
-        ).fetchall()
-
     produto_rows = cur.execute("""
         SELECT nome FROM produtos
         UNION SELECT nome FROM historico_itens
@@ -1528,6 +1517,34 @@ def historico():
     nomes_produtos = [r["nome"] for r in produto_rows if r["nome"]]
     nomes_validos = set(nomes_produtos)
     produtos_selecionados = [n for n in request.args.getlist("produtos") if n in nomes_validos]
+
+    pedidos_where_parts = list(where_parts)
+    pedidos_params = list(params)
+    if produtos_selecionados:
+        pedidos_where_parts.append(
+            "id IN (SELECT DISTINCT pedido_id FROM historico_itens WHERE nome IN (" +
+            ",".join("?" for _ in produtos_selecionados) + "))"
+        )
+        pedidos_params.extend(produtos_selecionados)
+    pedidos_where = ("WHERE " + " AND ".join(pedidos_where_parts)) if pedidos_where_parts else ""
+
+    pedidos = cur.execute(
+        f"SELECT * FROM historico_pedidos {pedidos_where} ORDER BY criado_em DESC, id DESC LIMIT 5000",
+        tuple(pedidos_params)
+    ).fetchall()
+
+    pedido_itens = {}
+    for p in pedidos:
+        if produtos_selecionados:
+            marks = ",".join("?" for _ in produtos_selecionados)
+            pedido_itens[p["id"]] = cur.execute(
+                f"SELECT * FROM historico_itens WHERE pedido_id=? AND nome IN ({marks}) ORDER BY id ASC",
+                (p["id"], *produtos_selecionados)
+            ).fetchall()
+        else:
+            pedido_itens[p["id"]] = cur.execute(
+                "SELECT * FROM historico_itens WHERE pedido_id=? ORDER BY id ASC", (p["id"],)
+            ).fetchall()
 
     item_parts, item_params = [], []
     if inicio and fim_exclusivo:
@@ -1569,6 +1586,7 @@ def historico():
         tuple(params)
     ).fetchone()["t"] or 0
     total_unidades = sum(int(row["quantidade"] or 0) for row in resumo_produtos)
+    total_produtos_selecionados = sum(float(row["valor"] or 0) for row in resumo_produtos)
     conn.close()
 
     return render_template(
@@ -1580,6 +1598,7 @@ def historico():
         produtos_filtro=[{"nome": n} for n in nomes_produtos],
         produtos_selecionados=produtos_selecionados,
         resumo_produtos=resumo_produtos, total_unidades=total_unidades,
+        total_produtos_selecionados=total_produtos_selecionados,
     )
 
 @app.route("/historico/remover/<int:pedido_id>", methods=["POST"])
