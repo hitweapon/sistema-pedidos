@@ -953,3 +953,20 @@ body.order-modal-open{overflow:hidden!important;height:100%!important;overscroll
 .ticket-delete-form .btn-delete:hover{background:#a92f25!important;color:white!important}
 @media(max-width:1050px){.edit-order-layout{grid-template-columns:1fr}.edit-order-side{grid-template-columns:1fr 1fr}.edit-order-total-card{align-self:start}}
 @media(max-width:700px){.edit-order-container{padding:14px!important}.edit-order-hero{align-items:flex-start;flex-direction:column;padding:20px}.edit-hero-total{text-align:left;border-left:0;border-top:1px solid #ecd9ca;padding:14px 0 0;width:100%}.edit-order-side{grid-template-columns:1fr}.edit-fields-grid{grid-template-columns:1fr}.edit-field-wide{grid-column:auto}.edit-topbar-actions{width:100%;justify-content:space-between}.edit-order-actions{flex-direction:column}.edit-order-actions .btn{width:100%!important}.edit-product-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));padding:9px}.edit-order-card,.edit-order-total-card{padding:16px!important}}
+
+
+/* Taxa de entrega sempre visível no pedido para deixar claro onde marcar. */
+.new-order-panel.is-open .delivery-fee-choice{
+  display:flex!important;align-items:center;justify-content:space-between;gap:20px;
+  background:linear-gradient(110deg,#fff4e8 0%,#fffaf5 100%)!important;
+  border:1px solid #efc8a7!important;border-left:4px solid #ed6b19!important;
+  padding:16px 18px!important;margin:14px 0!important;border-radius:13px!important;
+}
+.new-order-panel.is-open .delivery-fee-copy{display:flex;flex-direction:column;gap:5px;min-width:0}
+.new-order-panel.is-open .delivery-fee-copy>strong{color:#9c4108!important;font-size:14px}
+.new-order-panel.is-open .delivery-fee-copy>small{color:#7a6b60!important;font-size:12px;line-height:1.4}
+.new-order-panel.is-open .delivery-fee-copy b{color:#c84d08}
+.new-order-panel.is-open .delivery-fee-toggle{display:flex!important;align-items:center;gap:10px;white-space:nowrap;background:#fff;border:1px solid #efd5c1;border-radius:999px;padding:10px 13px!important}
+.new-order-panel.is-open .delivery-fee-toggle>span:last-child{font-size:12px;font-weight:900;color:#8f3d0c}
+.new-order-panel.is-open .delivery-fee-toggle input:disabled+.delivery-fee-switch{background:#d7d0ca;opacity:.65}
+@media(max-width:700px){.new-order-panel.is-open .delivery-fee-choice{align-items:flex-start;flex-direction:column}.new-order-panel.is-open .delivery-fee-toggle{white-space:normal}}
