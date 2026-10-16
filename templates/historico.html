@@ -140,9 +140,9 @@
       </div>
       <div class="product-list" id="produtosLista">
         {% for produto in produtos_filtro %}
-        <label class="product-option" data-name="{{ produto.nome|lower }}">
+        <label class="product-option">
           <input type="checkbox" value="{{ produto.nome }}" {% if produto.nome in produtos_selecionados %}checked{% endif %}>
-          <span>{{ produto.nome }}</span>
+          <span class="product-option-name">{{ produto.nome }}</span>
         </label>
         {% endfor %}
       </div>
@@ -198,8 +198,16 @@
   });
   function openModal(){modal.hidden=false;search.value='';filterProducts();syncChecks();search.focus();}
   function closeModal(){modal.hidden=true;}
-  function normalizeProductText(value){return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('pt-BR');}
-  function filterProducts(){const q=normalizeProductText(search.value.trim());list.querySelectorAll('.product-option').forEach(label=>{const name=normalizeProductText(label.textContent);const matches=name.includes(q);label.hidden=!matches;label.style.setProperty('display',matches?'flex':'none','important');});}
+  function normalizeProductText(value){return String(value||'').toLocaleLowerCase('pt-BR');}
+  function filterProducts(){
+    const q=normalizeProductText(search.value.trim());
+    list.querySelectorAll('label.product-option').forEach(label=>{
+      const name=normalizeProductText(label.querySelector('.product-option-name')?.textContent || label.querySelector('input')?.value || '');
+      const matches=q==='' || name.includes(q);
+      label.hidden=!matches;
+      label.style.display=matches?'flex':'none';
+    });
+  }
 
   document.getElementById('produtosAbrir').addEventListener('click',openModal);
   document.getElementById('produtosTodos').addEventListener('click',()=>{selected.clear();renderSelected();syncChecks();});
@@ -210,6 +218,8 @@
   search.addEventListener('input',filterProducts);
   search.addEventListener('search',filterProducts);
   search.addEventListener('keyup',filterProducts);
+  search.addEventListener('change',filterProducts);
+  filterProducts();
   modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal();});
   renderSelected();
