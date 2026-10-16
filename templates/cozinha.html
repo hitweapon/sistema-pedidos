@@ -135,6 +135,10 @@ socket.on("novo_pedido", function(data){
 });
 
 // Pedido pronto: remove
+socket.on("pedido_caixa_atualizado", function(){
+  window.location.reload();
+});
+
 socket.on("pedido_caixa_removido", function(){
   window.location.reload();
 });
