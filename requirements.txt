@@ -1,3 +1,4 @@
-flask
-flask-socketio
-werkzeug
+Flask
+Flask-SocketIO
+Werkzeug
+pywin32; sys_platform == "win32"
