@@ -51,6 +51,10 @@
       <label style="margin-top:12px;"><b>Opção 2</b></label>
       <textarea name="prato_do_dia_2" rows="3" style="width:100%; padding:12px; border-radius:12px; font-size:16px;">{{ prato_do_dia_2 }}</textarea>
 
+      <div class="settings-section-title"><span>🚚</span><div><strong>Taxa de entrega</strong><small>Valor padrão aplicado nos novos pedidos.</small></div></div>
+      <label style="margin-top:10px;"><b>Valor da taxa (R$)</b></label>
+      <input type="number" name="taxa_entrega" min="0" step="0.01" value="{{ '%.2f'|format(taxa_entrega or 0) }}" placeholder="Ex: 5.00" style="width:100%; padding:12px; border-radius:12px; font-size:16px;">
+
       <button class="btn btn-primary" type="submit" style="margin-top:12px;">💾 Salvar</button>
     </form>
 
