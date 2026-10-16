@@ -128,10 +128,14 @@
           <div class="customer-picked-note" id="clienteSelecionadoNota">Cliente opcional para balcão; selecione ou cadastre para preencher os dados rapidamente.</div>
         </div>
         <div style="margin-top:10px;">
-          <label>Nome do cliente</label>
-          <input type="text" name="cliente_nome" id="clienteNome" placeholder="Nome do cliente">
+          <label>Nome avulso (sem cadastro)</label>
+          <input type="text" name="cliente_nome" id="clienteNome" placeholder="Digite o nome, se necessário">
         </div>
 
+        <div class="delivery-fee-choice" id="escolhaTaxaEntrega" hidden>
+          <div><strong>Taxa de entrega</strong><small>Valor configurado: R$ {{ "%.2f"|format(taxa_entrega) }}</small></div>
+          <label class="delivery-fee-toggle"><input type="checkbox" name="cobrar_taxa" value="1" id="cobrarTaxaEntrega" checked {% if taxa_entrega <= 0 %}disabled{% endif %}><span class="delivery-fee-switch"></span><span id="taxaEntregaLabel">{% if taxa_entrega > 0 %}Cobrar taxa de entrega{% else %}Configure a taxa antes de usar{% endif %}</span></label>
+        </div>
         <div id="camposDelivery" style="display:none; margin-top:10px;">
           <div class="grid" style="grid-template-columns: 1fr 1fr;">
             <div>
@@ -464,6 +468,17 @@
       ['novoClienteNome','novoClienteTelefone','novoClienteEndereco','novoClienteNumero','novoClienteBairro'].forEach(id=>document.getElementById(id).value='');
     }catch(error){feedback.textContent=error.message || 'Erro ao salvar cliente.';}finally{button.disabled=false;}
   });
+
+  const deliverySelect = document.getElementById('canal');
+  const feeChoice = document.getElementById('escolhaTaxaEntrega');
+  const deliveryFields = document.getElementById('camposDelivery');
+  function updateDeliveryControls(){
+    const isDelivery = deliverySelect?.value === 'DELIVERY';
+    if(feeChoice) feeChoice.hidden = !isDelivery;
+    if(deliveryFields) deliveryFields.style.display = isDelivery ? 'block' : 'none';
+  }
+  deliverySelect?.addEventListener('change', updateDeliveryControls);
+  updateDeliveryControls();
 
   const socket = io();
   socket.on("pedido_caixa_novo", () => { location.reload(); });
