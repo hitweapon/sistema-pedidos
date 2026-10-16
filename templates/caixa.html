@@ -85,8 +85,8 @@
 
       <hr style="margin:16px 0; opacity:.2;">
 
-      <details class="new-order-panel">
-        <summary><span><strong>＋ Novo pedido</strong><small>Selecionar produtos e dados da venda</small></span><span class="summary-action">Abrir formulário　⌄</span></summary>
+      <div class="new-order-panel" id="newOrderPanel">
+        <button type="button" class="new-order-summary" id="toggleNovoPedido" aria-expanded="false"><span><strong>＋ Novo pedido</strong><small>Selecionar produtos e dados da venda</small></span><span class="summary-action">Abrir formulário　⌄</span></button>
       <form action="/caixa/criar_pedido" method="POST" id="formNovoPedido">
 
         <!-- ✅ FORMA DE PAGAMENTO (AGORA DENTRO DO FORM) -->
@@ -251,7 +251,7 @@
 
         <button class="btn btn-primary" style="margin-top:14px;">✅ Criar pedido</button>
       </form>
-      </details>
+      </div>
 
       <hr style="margin:16px 0; opacity:.2;">
 
@@ -533,12 +533,18 @@
   updateDeliveryControls();
   updateWalkinMode();
 
-  const orderModal = document.querySelector('.new-order-panel');
-  function syncOrderModalScroll(){
-    document.body.classList.toggle('order-modal-open', Boolean(orderModal?.open));
+  const orderModal = document.getElementById('newOrderPanel');
+  const orderToggle = document.getElementById('toggleNovoPedido');
+  function setOrderModalOpen(isOpen){
+    orderModal?.classList.toggle('is-open', isOpen);
+    orderToggle?.setAttribute('aria-expanded', String(isOpen));
+    const action=orderToggle?.querySelector('.summary-action');
+    if(action) action.textContent=isOpen ? 'Fechar ✕' : 'Abrir formulário　⌄';
+    document.body.classList.toggle('order-modal-open', isOpen);
   }
-  orderModal?.addEventListener('toggle', syncOrderModalScroll);
-  syncOrderModalScroll();
+  orderToggle?.addEventListener('click',()=>setOrderModalOpen(!orderModal.classList.contains('is-open')));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape' && orderModal?.classList.contains('is-open'))setOrderModalOpen(false)});
+  setOrderModalOpen(false);
 
   const socket = io();
   socket.on("pedido_caixa_novo", () => { location.reload(); });
