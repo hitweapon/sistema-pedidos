@@ -1006,3 +1006,6 @@ body.order-modal-open{overflow:hidden!important;height:100%!important;overscroll
  .new-order-panel.is-open .cashier-product-filter-hint{text-align:left}
  .new-order-panel.is-open .delivery-fee-choice{align-items:flex-start;flex-direction:column}
 }
+
+/* Use one clear clickable control for delivery fee; hide the decorative duplicate switch. */
+.new-order-panel.is-open .delivery-fee-toggle .delivery-fee-switch{display:none!important}
