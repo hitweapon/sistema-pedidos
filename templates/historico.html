@@ -79,7 +79,7 @@
           {% for produto in produtos_filtro %}<option value="{{ produto.nome }}" {% if produto.nome in produtos_selecionados %}selected{% endif %}>{{ produto.nome }}</option>{% endfor %}
         </select>
         <div class="product-tools">
-          <button class="product-open" type="button" id="produtosAbrir">＋ Escolher produtos</button>
+          <button class="product-open" type="button" id="produtosAbrir" onclick="document.getElementById('produtosModal').hidden=false">＋ Escolher produtos</button>
           <button class="product-text-btn" type="button" id="produtosTodos">Analisar todos</button>
           <span class="hint" id="produtosContagem" style="margin:0">Todos os produtos</span>
         </div>
@@ -126,7 +126,7 @@
   <div class="product-modal-card">
     <div class="product-modal-head">
       <div><h2 id="produtosModalTitulo" style="margin:0">Selecionar produtos</h2><div class="hint">Marque os produtos que deseja incluir no resumo.</div></div>
-      <button type="button" class="product-text-btn" id="produtosFechar" aria-label="Fechar">✕</button>
+      <button type="button" class="product-text-btn" id="produtosFechar" aria-label="Fechar" onclick="document.getElementById('produtosModal').hidden=true">✕</button>
     </div>
     <div class="product-modal-body">
       <input class="product-search" id="produtosBusca" type="search" placeholder="🔎 Buscar produto..." autocomplete="off">
@@ -145,7 +145,7 @@
     </div>
     <div class="product-modal-foot">
       <button type="button" class="btn btn-ghost" id="produtosFechar2" onclick="document.getElementById('produtosModal').hidden=true">Cancelar</button>
-      <button type="button" class="btn btn-primary" id="produtosAplicar">Concluir seleção</button>
+      <button type="button" class="btn btn-primary" id="produtosAplicar" onclick="document.getElementById('produtosModal').hidden=true">Concluir seleção</button>
     </div>
   </div>
 </div>
