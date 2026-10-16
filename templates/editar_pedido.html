@@ -167,8 +167,8 @@
                         {% if p.pesado == 1 %}<span class="edit-product-price">Valor livre</span>{% else %}<span class="edit-product-price">R$ {{ "%.2f"|format(p.preco or 0) }}</span>{% endif %}
                       </div>
                       {% if p.pesado == 1 %}
-                        <label class="edit-product-select"><input type="checkbox" name="pesado_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) > 0 %}checked{% endif %}><span>Incluir</span></label>
-                        <label class="edit-quantity-label">Valor (R$)<input type="number" step="0.01" min="0" name="valor_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) > 0 %}{{ "%.2f"|format(item.pesado_valor) }}{% endif %}" placeholder="0,00"></label>
+                        <label class="edit-product-select"><input type="checkbox" name="pesado_id" value="{{ p.id }}" {% if item %}checked{% endif %}><span>Incluir</span></label>
+                        <label class="edit-quantity-label">Valor (R$)<input type="number" step="0.01" min="0" name="valor_{{ p.id }}" value="{% if item %}{{ "%.2f"|format((item.pesado_valor or 0) if (item.pesado_valor or 0) > 0 else (item.subtotal or 0)) }}{% endif %}" placeholder="0,00"></label>
                       {% else %}
                         <label class="edit-product-select"><input type="checkbox" name="item_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) == 0 %}checked{% endif %}><span>Incluir</span></label>
                         <label class="edit-quantity-label">Quantidade<input type="number" min="1" step="1" name="qtd_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) == 0 %}{{ item.quantidade }}{% else %}1{% endif %}"></label>
@@ -196,8 +196,8 @@
                         <span class="edit-product-price">{% if p.pesado == 1 %}Valor livre{% else %}R$ {{ "%.2f"|format(p.preco or 0) }}{% endif %}</span>
                       </div>
                       {% if p.pesado == 1 %}
-                        <label class="edit-product-select"><input type="checkbox" name="pesado_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) > 0 %}checked{% endif %}><span>Incluir</span></label>
-                        <label class="edit-quantity-label">Valor (R$)<input type="number" step="0.01" min="0" name="valor_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) > 0 %}{{ "%.2f"|format(item.pesado_valor) }}{% endif %}" placeholder="0,00"></label>
+                        <label class="edit-product-select"><input type="checkbox" name="pesado_id" value="{{ p.id }}" {% if item %}checked{% endif %}><span>Incluir</span></label>
+                        <label class="edit-quantity-label">Valor (R$)<input type="number" step="0.01" min="0" name="valor_{{ p.id }}" value="{% if item %}{{ "%.2f"|format((item.pesado_valor or 0) if (item.pesado_valor or 0) > 0 else (item.subtotal or 0)) }}{% endif %}" placeholder="0,00"></label>
                       {% else %}
                         <label class="edit-product-select"><input type="checkbox" name="item_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) == 0 %}checked{% endif %}><span>Incluir</span></label>
                         <label class="edit-quantity-label">Quantidade<input type="number" min="1" step="1" name="qtd_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) == 0 %}{{ item.quantidade }}{% else %}1{% endif %}"></label>
