@@ -139,14 +139,15 @@
         <div class="delivery-fee-choice" id="escolhaTaxaEntrega">
           <div class="delivery-fee-copy">
             <strong>🚚 Taxa de entrega</strong>
-            <small id="taxaEntregaDescricao">Selecione Delivery no campo Canal para habilitar a taxa.</small>
+            <small id="taxaEntregaDescricao">Selecione Delivery no campo Canal para habilitar a cobrança.</small>
             <small>Valor configurado: <b>R$ {{ "%.2f"|format(taxa_entrega) }}</b></small>
           </div>
           <label class="delivery-fee-toggle" for="cobrarTaxaEntrega">
             <input type="checkbox" name="cobrar_taxa" value="1" id="cobrarTaxaEntrega" data-configured="{{ taxa_entrega }}" disabled>
             <span class="delivery-fee-switch"></span>
-            <span id="taxaEntregaLabel">Aplicar taxa</span>
+            <span id="taxaEntregaLabel">Selecione Delivery</span>
           </label>
+          <a class="delivery-fee-settings-link" href="/prato_do_dia" target="_blank" rel="noopener">Configurar valor</a>
         </div>
         <div id="camposDelivery" style="display:none; margin-top:10px;">
           <div class="grid" style="grid-template-columns: 1fr 1fr;">
@@ -180,7 +181,16 @@
         <hr style="margin:16px 0; opacity:.2;">
         <div class="product-picker-heading"><div><h3 style="margin:0;">🛒 Produtos</h3><small>Pesquise ou escolha uma categoria.</small></div><span id="produtoSelecionadoCount">0 itens</span></div>
         <input class="cashier-product-search" type="search" id="buscaProdutosCaixa" placeholder="🔎 Buscar produto pelo nome..." autocomplete="off">
-        <div class="cashier-category-tabs" id="abasCategorias"><button type="button" class="active" data-category="all">Todos</button>{% for c in categorias %}<button type="button" data-category="{{ c.id }}">{{ c.nome }}</button>{% endfor %}{% if produtos_sem_categoria %}<button type="button" data-category="none">Sem categoria</button>{% endif %}</div>
+        <div class="cashier-product-filter-row">
+          <label for="filtroCategoriaCaixa">Categoria
+            <select id="filtroCategoriaCaixa">
+              <option value="all">Todas as categorias</option>
+              {% for c in categorias %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+              {% if produtos_sem_categoria %}<option value="none">Sem categoria</option>{% endif %}
+            </select>
+          </label>
+          <span class="cashier-product-filter-hint">Escolha uma categoria ou pesquise por nome.</span>
+        </div>
         <h3 style="margin-bottom:10px;">Itens (normais)</h3>
 
         {% for c in categorias %}
@@ -413,7 +423,7 @@
 
   // Busca e filtro de produtos sem alterar os nomes dos campos esperados pelo backend.
   const productSearch = document.getElementById('buscaProdutosCaixa');
-  const categoryTabs = document.getElementById('abasCategorias');
+  const categoryFilter = document.getElementById('filtroCategoriaCaixa');
   const productCards = Array.from(document.querySelectorAll('.cashier-product-card'));
   let activeCategory = 'all';
   function filterCashierProducts(){
@@ -440,11 +450,10 @@
     });
   }
   productSearch?.addEventListener('input', filterCashierProducts);
-  categoryTabs?.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
-    activeCategory = btn.dataset.category || 'all';
-    categoryTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+  categoryFilter?.addEventListener('change', () => {
+    activeCategory = categoryFilter.value || 'all';
     filterCashierProducts();
-  }));
+  });
   filterCashierProducts();
 
   // Seleção e cadastro de clientes.
@@ -527,28 +536,34 @@
   });
 
   const deliverySelect = document.getElementById('canal');
-  const feeChoice = document.getElementById('escolhaTaxaEntrega');
-  const deliveryFields = document.getElementById('camposDelivery');
   const feeCheckbox = document.getElementById('cobrarTaxaEntrega');
   const feeDescription = document.getElementById('taxaEntregaDescricao');
   const feeLabel = document.getElementById('taxaEntregaLabel');
   const configuredFee = Number(feeCheckbox?.dataset.configured || 0);
+  const orderForm = document.getElementById('formNovoPedido');
   let previousWasDelivery = deliverySelect?.value === 'DELIVERY';
+  function formatFee(value){
+    return Number(value || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
   function updateDeliveryControls(){
     const isDelivery = deliverySelect?.value === 'DELIVERY';
     if(deliveryFields) deliveryFields.style.display = isDelivery ? 'block' : 'none';
     if(feeCheckbox){
-      feeCheckbox.disabled = !isDelivery || configuredFee <= 0;
+      // A única exigência para habilitar o controle é escolher Delivery.
+      // Se a taxa não estiver configurada, deixamos clicar, mas impedimos salvar com taxa zero.
+      feeCheckbox.disabled = !isDelivery;
       if(isDelivery && !previousWasDelivery) feeCheckbox.checked = configuredFee > 0;
       if(!isDelivery) feeCheckbox.checked = false;
     }
     if(feeDescription){
       feeDescription.textContent = isDelivery
-        ? (configuredFee > 0 ? 'A taxa será somada automaticamente ao total. Desmarque abaixo se não quiser cobrar.' : 'A taxa ainda está zerada. Configure o valor nesta página antes de usar.')
-        : 'Selecione Delivery no campo Canal para habilitar a cobrança da taxa.';
+        ? (configuredFee > 0 ? 'Marque para somar R$ ' + formatFee(configuredFee) + ' ao pedido. Desmarque se não houver cobrança.' : 'A taxa está em R$ 0,00. Use “Configurar valor” e salve o valor antes de finalizar este pedido.')
+        : 'Primeiro selecione “Delivery” no campo Canal acima para habilitar a caixinha.';
     }
     if(feeLabel){
-      feeLabel.textContent = configuredFee > 0 ? 'Cobrar R$ ' + configuredFee.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'Configure a taxa';
+      feeLabel.textContent = isDelivery
+        ? (configuredFee > 0 ? 'Cobrar R$ ' + formatFee(configuredFee) : 'Aplicar taxa (valor zerado)')
+        : 'Selecione Delivery';
     }
     if(walkinCheckbox && isDelivery) walkinCheckbox.checked=false;
     if(walkinModeCard) walkinModeCard.hidden=isDelivery;
@@ -559,6 +574,17 @@
     }
     previousWasDelivery = isDelivery;
   }
+  feeCheckbox?.addEventListener('change',()=>{
+    if(feeCheckbox.checked && configuredFee <= 0){
+      if(feeDescription) feeDescription.textContent='A taxa está zerada. Abra “Configurar valor”, salve o valor (por exemplo, R$ 5,00) e atualize o Caixa.';
+    }
+  });
+  orderForm?.addEventListener('submit',event=>{
+    if(deliverySelect?.value==='DELIVERY' && feeCheckbox?.checked && configuredFee<=0){
+      event.preventDefault();
+      alert('A taxa de entrega está zerada. Abra “Configurar valor”, informe o valor (por exemplo, R$ 5,00), salve e reabra o pedido.');
+    }
+  });
   deliverySelect?.addEventListener('change', updateDeliveryControls);
   updateDeliveryControls();
   updateWalkinMode();
