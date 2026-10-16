@@ -519,3 +519,165 @@ a:hover { text-decoration: underline; }
     .total-area { flex-direction: column; gap: 12px; }
     .kpi { display: none; }
 }
+
+
+/* =========================================================
+   EMPÓRIO OS — camada visual refinada (sem alterar funções)
+   Paleta: creme, carvão e verde de padaria artesanal
+========================================================= */
+:root {
+  color-scheme: light;
+  --brand: #176b4d;
+  --brand-strong: #10563d;
+  --brand-soft: #e5f3eb;
+  --accent: #d9a441;
+  --page: #f5f7f4;
+  --surface: #ffffff;
+  --ink: #202923;
+  --muted: #6d7770;
+  --line: #e2e8e2;
+  --shadow-soft: 0 8px 28px rgba(29, 51, 38, .07);
+  --shadow-card: 0 3px 12px rgba(29, 51, 38, .045);
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body.dark {
+  color-scheme: dark;
+  --page: #111914;
+  --surface: #1a241d;
+  --ink: #edf4ee;
+  --muted: #a4b2a8;
+  --line: #2b3a30;
+  --brand-soft: #203b2d;
+  --shadow-soft: 0 12px 34px rgba(0,0,0,.22);
+  --shadow-card: 0 3px 12px rgba(0,0,0,.16);
+  background: var(--page);
+  color: var(--ink);
+}
+.container { max-width: 1440px; padding: 24px clamp(14px, 2.5vw, 34px); }
+.topbar {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 2px 14px rgba(20, 40, 28, .035);
+}
+.topbar-inner { max-width: 1440px; padding: 14px clamp(14px, 2.5vw, 34px); }
+.brand { gap: 13px; }
+.brand-icon {
+  border-radius: 15px;
+  background: linear-gradient(145deg, #1d805b, #10543b);
+  box-shadow: 0 7px 18px rgba(23,107,77,.2);
+}
+.brand-title { font-size: 19px; letter-spacing: -.35px; }
+.brand-sub { color: var(--muted); opacity: 1; }
+.kpi { gap: 8px; flex-wrap: wrap; }
+.kpi-card, .card, .produto, .ticket, .empty-state {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+.kpi-card { border-radius: 14px; box-shadow: none; }
+.kpi-label { color: var(--muted); opacity: 1; }
+.kpi-value { letter-spacing: -.6px; }
+.card { border-radius: 18px; padding: clamp(16px, 2vw, 24px); }
+h1, h2, h3 { letter-spacing: -.45px; line-height: 1.2; }
+h2 { font-size: clamp(20px, 2vw, 25px); }
+.banner {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(120deg, #123d2e 0%, #176b4d 55%, #2c8963 100%);
+  border-radius: 0 0 28px 28px;
+  padding: clamp(38px, 6vw, 76px) 20px;
+  box-shadow: 0 18px 42px rgba(16, 86, 61, .18);
+}
+.banner:after {
+  content: "✳";
+  position: absolute;
+  right: 7%; top: -42px;
+  font-size: clamp(150px, 23vw, 300px);
+  line-height: 1;
+  color: rgba(255,255,255,.055);
+  pointer-events: none;
+}
+.banner h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -1.2px; }
+.banner p { font-size: clamp(15px, 1.8vw, 18px); color: rgba(255,255,255,.84); }
+.grid { gap: 16px; }
+.produto {
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.produto:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); border-color: #b9d7c4; }
+.produto-img { height: 170px; border-radius: 13px; background: var(--page); }
+.produto-titulo { color: var(--ink); font-size: 16px; line-height: 1.35; }
+.produto-preco { color: var(--brand); font-size: 21px; letter-spacing: -.3px; }
+.total-area {
+  position: sticky; bottom: 12px; z-index: 20;
+  gap: 18px; margin-top: 22px; padding: 18px 22px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 18px; box-shadow: 0 12px 34px rgba(19, 43, 29, .14);
+}
+.total-area h2 { font-size: clamp(22px, 3vw, 30px); }
+.total-area button, .btn-primary {
+  background: linear-gradient(135deg, #20845d, #176b4d);
+  color: #fff; box-shadow: 0 6px 16px rgba(23,107,77,.18);
+}
+.total-area button { border-radius: 13px; font-weight: 800; }
+.btn { border-radius: 12px; transition: transform .15s ease, filter .15s ease; }
+.btn:hover, .product-open:hover { filter: brightness(.97); transform: translateY(-1px); }
+.btn-ghost { background: #eef2ee; color: #2e3b32; }
+body.dark .btn-ghost { background: #27352b; color: var(--ink); }
+input, select, textarea {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #4b9b75;
+  box-shadow: 0 0 0 3px rgba(43, 139, 91, .13);
+}
+body.dark input, body.dark select, body.dark textarea {
+  background: #121a15; color: var(--ink); border-color: var(--line);
+}
+label { color: var(--ink); }
+.danger { background: #b93838; border-radius: 12px; }
+.ticket { border-radius: 18px; box-shadow: var(--shadow-card); }
+.ticket-head {
+  background: linear-gradient(120deg, var(--brand-soft), color-mix(in srgb, var(--surface) 75%, var(--brand-soft)));
+  border-bottom: 1px solid var(--line);
+  padding: 16px;
+}
+body.dark .ticket-head { background: linear-gradient(120deg, #203b2d, #1a241d); }
+.ticket-badge { background: #fff1ce; color: #76500a; }
+body.dark .ticket-badge { background: #493b1d; color: #f5d58c; }
+.ticket-body { padding: 17px; }
+.ticket-title { color: var(--muted); opacity: 1; letter-spacing: .7px; }
+.ticket-actions { gap: 8px; padding: 14px; }
+.empty-state { border-radius: 18px; }
+a { color: var(--brand); }
+body.dark a { color: #83d5a8; }
+.toggle-theme { top: 14px; right: 14px; background: #203c2d; border: 1px solid rgba(255,255,255,.12); }
+body.dark .toggle-theme { background: #e8f1ea; color: #17251b; }
+.report-kpi, .report-table th, .report-table td { border-color: var(--line) !important; }
+.product-modal-card { background: var(--surface); color: var(--ink); }
+@media (max-width: 760px) {
+  .container { padding: 14px; }
+  .topbar-inner { align-items: flex-start; flex-direction: column; }
+  .kpi { width: 100%; }
+  .kpi-card { min-width: 100px; flex: 1; }
+  .grid[style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .total-area { position: static; }
+  .produto-img { height: 145px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+}
