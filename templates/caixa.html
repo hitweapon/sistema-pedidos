@@ -136,9 +136,17 @@
           </label>
         </div>
 
-        <div class="delivery-fee-choice" id="escolhaTaxaEntrega" hidden>
-          <div><strong>Taxa de entrega</strong><small>Valor configurado: R$ {{ "%.2f"|format(taxa_entrega) }}</small></div>
-          <label class="delivery-fee-toggle"><input type="checkbox" name="cobrar_taxa" value="1" id="cobrarTaxaEntrega" checked {% if taxa_entrega <= 0 %}disabled{% endif %}><span class="delivery-fee-switch"></span><span id="taxaEntregaLabel">{% if taxa_entrega > 0 %}Cobrar taxa de entrega{% else %}Configure a taxa antes de usar{% endif %}</span></label>
+        <div class="delivery-fee-choice" id="escolhaTaxaEntrega">
+          <div class="delivery-fee-copy">
+            <strong>🚚 Taxa de entrega</strong>
+            <small id="taxaEntregaDescricao">Selecione Delivery no campo Canal para habilitar a taxa.</small>
+            <small>Valor configurado: <b>R$ {{ "%.2f"|format(taxa_entrega) }}</b></small>
+          </div>
+          <label class="delivery-fee-toggle" for="cobrarTaxaEntrega">
+            <input type="checkbox" name="cobrar_taxa" value="1" id="cobrarTaxaEntrega" data-configured="{{ taxa_entrega }}" disabled>
+            <span class="delivery-fee-switch"></span>
+            <span id="taxaEntregaLabel">Aplicar taxa</span>
+          </label>
         </div>
         <div id="camposDelivery" style="display:none; margin-top:10px;">
           <div class="grid" style="grid-template-columns: 1fr 1fr;">
@@ -521,15 +529,35 @@
   const deliverySelect = document.getElementById('canal');
   const feeChoice = document.getElementById('escolhaTaxaEntrega');
   const deliveryFields = document.getElementById('camposDelivery');
+  const feeCheckbox = document.getElementById('cobrarTaxaEntrega');
+  const feeDescription = document.getElementById('taxaEntregaDescricao');
+  const feeLabel = document.getElementById('taxaEntregaLabel');
+  const configuredFee = Number(feeCheckbox?.dataset.configured || 0);
+  let previousWasDelivery = deliverySelect?.value === 'DELIVERY';
   function updateDeliveryControls(){
     const isDelivery = deliverySelect?.value === 'DELIVERY';
-    if(feeChoice) feeChoice.hidden = !isDelivery;
     if(deliveryFields) deliveryFields.style.display = isDelivery ? 'block' : 'none';
+    if(feeCheckbox){
+      feeCheckbox.disabled = !isDelivery || configuredFee <= 0;
+      if(isDelivery && !previousWasDelivery) feeCheckbox.checked = configuredFee > 0;
+      if(!isDelivery) feeCheckbox.checked = false;
+    }
+    if(feeDescription){
+      feeDescription.textContent = isDelivery
+        ? (configuredFee > 0 ? 'A taxa será somada automaticamente ao total. Desmarque abaixo se não quiser cobrar.' : 'A taxa ainda está zerada. Configure o valor nesta página antes de usar.')
+        : 'Selecione Delivery no campo Canal para habilitar a cobrança da taxa.';
+    }
+    if(feeLabel){
+      feeLabel.textContent = configuredFee > 0 ? 'Cobrar R$ ' + configuredFee.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'Configure a taxa';
+    }
     if(walkinCheckbox && isDelivery) walkinCheckbox.checked=false;
     if(walkinModeCard) walkinModeCard.hidden=isDelivery;
     if(customerPickerBlock) customerPickerBlock.hidden=!!walkinCheckbox?.checked && !isDelivery;
-    if(isDelivery && !customerSearch.value.trim()) customerSearch.placeholder='Selecionar cliente ou digitar nome para entrega...';
-    else customerSearch.placeholder='Buscar cadastrado ou digitar nome avulso...';
+    if(customerSearch){
+      if(isDelivery && !customerSearch.value.trim()) customerSearch.placeholder='Selecionar cliente ou digitar nome para entrega...';
+      else customerSearch.placeholder='Buscar cadastrado ou digitar nome avulso...';
+    }
+    previousWasDelivery = isDelivery;
   }
   deliverySelect?.addEventListener('change', updateDeliveryControls);
   updateDeliveryControls();
