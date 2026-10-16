@@ -121,15 +121,18 @@
         </div>
 
         <input type="hidden" name="cliente_id" id="clienteIdSelecionado" value="">
-        <div class="customer-picker">
-          <div class="customer-picker-title"><label for="clienteBusca">Cliente</label><button type="button" class="customer-add-trigger" id="abrirNovoCliente">＋ Novo cliente</button></div>
-          <input type="search" id="clienteBusca" list="clientesCadastrados" placeholder="Buscar por nome ou telefone..." autocomplete="off">
+        <input type="hidden" name="cliente_nome" id="clienteNome" value="">
+        <div class="customer-picker" id="customerPickerBlock">
+          <div class="customer-picker-title"><label for="clienteBusca">Cliente (opcional)</label><button type="button" class="customer-add-trigger" id="abrirNovoCliente">＋ Novo cliente</button></div>
+          <input type="search" id="clienteBusca" list="clientesCadastrados" placeholder="Buscar cadastrado ou digitar nome avulso..." autocomplete="off">
           <datalist id="clientesCadastrados">{% for cliente in clientes %}<option value="{{ cliente.nome }}{% if cliente.telefone %} — {{ cliente.telefone }}{% endif %}" data-id="{{ cliente.id }}"></option>{% endfor %}</datalist>
-          <div class="customer-picked-note" id="clienteSelecionadoNota">Cliente opcional para balcão; selecione ou cadastre para preencher os dados rapidamente.</div>
+          <div class="customer-picked-note" id="clienteSelecionadoNota">Você pode escolher um cliente salvo ou digitar um nome só para este pedido.</div>
         </div>
-        <div style="margin-top:10px;">
-          <label>Nome avulso (sem cadastro)</label>
-          <input type="text" name="cliente_nome" id="clienteNome" placeholder="Digite o nome, se necessário">
+        <div class="walkin-mode-card" id="walkinModeCard">
+          <label class="walkin-mode-check" for="vendaRapidaSemCadastro">
+            <input type="checkbox" id="vendaRapidaSemCadastro" value="1">
+            <span><strong>Venda rápida sem identificação</strong><small>Para pão, mortadela e compras de balcão sem precisar informar nome ou fazer cadastro.</small></span>
+          </label>
         </div>
 
         <div class="delivery-fee-choice" id="escolhaTaxaEntrega" hidden>
@@ -435,19 +438,58 @@
   const customerId = document.getElementById('clienteIdSelecionado');
   const customerName = document.getElementById('clienteNome');
   const customerNote = document.getElementById('clienteSelecionadoNota');
+  let lastMatchedCustomerId = null;
+  function setCustomerField(selector, value){
+    const field=document.querySelector(selector);
+    if(field) field.value=value || '';
+  }
   function selectCustomerFromSearch(){
-    const value = customerSearch.value.trim();
-    const found = customers.find(c => value === (c.nome + (c.telefone ? ' — ' + c.telefone : '')) || value === c.nome || (c.telefone && value === c.telefone));
-    if(!found){ customerId.value=''; return; }
-    customerId.value=found.id; customerName.value=found.nome || '';
-    const tel=document.querySelector('[name="cliente_tel"]'); if(tel) tel.value=found.telefone || '';
-    const address=document.querySelector('[name="endereco"]'); if(address) address.value=found.endereco || '';
-    const number=document.querySelector('[name="cliente_numero"]'); if(number) number.value=found.numero || '';
-    const neighborhood=document.querySelector('[name="cliente_bairro"]'); if(neighborhood) neighborhood.value=found.bairro || '';
-    customerNote.textContent='Cliente selecionado: ' + found.nome;
+    const value = (customerSearch?.value || '').trim();
+    const normalized=value.toLocaleLowerCase('pt-BR');
+    const found = customers.find(c => {
+      const display=(c.nome || '') + (c.telefone ? ' — ' + c.telefone : '');
+      return normalized===display.toLocaleLowerCase('pt-BR') ||
+        normalized===(c.nome || '').toLocaleLowerCase('pt-BR') ||
+        (!!c.telefone && normalized===c.telefone.toLocaleLowerCase('pt-BR'));
+    });
+    if(found){
+      customerId.value=found.id; customerName.value=found.nome || '';
+      setCustomerField('[name="cliente_tel"]',found.telefone);
+      setCustomerField('[name="endereco"]',found.endereco);
+      setCustomerField('[name="cliente_numero"]',found.numero);
+      setCustomerField('[name="cliente_bairro"]',found.bairro);
+      customerNote.textContent='Cliente selecionado: ' + found.nome;
+      lastMatchedCustomerId=String(found.id);
+    }else{
+      if(lastMatchedCustomerId){
+        setCustomerField('[name="cliente_tel"]','');
+        setCustomerField('[name="endereco"]','');
+        setCustomerField('[name="cliente_numero"]','');
+        setCustomerField('[name="cliente_bairro"]','');
+      }
+      customerId.value='';
+      customerName.value=value;
+      customerNote.textContent=value ? 'Nome avulso: será usado somente neste pedido, sem criar cadastro.' : 'Você pode escolher um cliente salvo ou digitar um nome só para este pedido.';
+      lastMatchedCustomerId=null;
+    }
   }
   customerSearch?.addEventListener('change', selectCustomerFromSearch);
-  customerSearch?.addEventListener('input', () => { if(!customerSearch.value.trim()){customerId.value=''; customerNote.textContent='Cliente opcional para balcão; selecione ou cadastre para preencher os dados rapidamente.';} });
+  customerSearch?.addEventListener('input', selectCustomerFromSearch);
+  const customerPickerBlock=document.getElementById('customerPickerBlock');
+  const walkinModeCard=document.getElementById('walkinModeCard');
+  const walkinCheckbox=document.getElementById('vendaRapidaSemCadastro');
+  function updateWalkinMode(){
+    const isDelivery=deliverySelect?.value==='DELIVERY';
+    if(isDelivery && walkinCheckbox.checked) walkinCheckbox.checked=false;
+    walkinModeCard.hidden=isDelivery;
+    customerPickerBlock.hidden=walkinCheckbox.checked;
+    if(walkinCheckbox.checked){
+      customerSearch.value=''; customerId.value=''; customerName.value='';
+      customerNote.textContent='Venda de balcão sem identificação de cliente.';
+    }
+  }
+  walkinCheckbox?.addEventListener('change', updateWalkinMode);
+  
   const customerPanel=document.getElementById('novoClientePanel');
   const openCustomer=()=>{customerPanel.hidden=false; document.getElementById('novoClienteNome').focus();};
   const closeCustomer=()=>{customerPanel.hidden=true; document.getElementById('novoClienteFeedback').textContent='';};
@@ -476,9 +518,15 @@
     const isDelivery = deliverySelect?.value === 'DELIVERY';
     if(feeChoice) feeChoice.hidden = !isDelivery;
     if(deliveryFields) deliveryFields.style.display = isDelivery ? 'block' : 'none';
+    if(walkinCheckbox && isDelivery) walkinCheckbox.checked=false;
+    if(walkinModeCard) walkinModeCard.hidden=isDelivery;
+    if(customerPickerBlock) customerPickerBlock.hidden=!!walkinCheckbox?.checked && !isDelivery;
+    if(isDelivery && !customerSearch.value.trim()) customerSearch.placeholder='Selecionar cliente ou digitar nome para entrega...';
+    else customerSearch.placeholder='Buscar cadastrado ou digitar nome avulso...';
   }
   deliverySelect?.addEventListener('change', updateDeliveryControls);
   updateDeliveryControls();
+  updateWalkinMode();
 
   const socket = io();
   socket.on("pedido_caixa_novo", () => { location.reload(); });
