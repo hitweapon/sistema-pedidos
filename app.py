@@ -1446,62 +1446,140 @@ def historico():
     q = (request.args.get("q") or "").strip()
     canal = (request.args.get("canal") or "TODOS").upper().strip()
     status = (request.args.get("status") or "TODOS").upper().strip()
+    periodo = (request.args.get("periodo") or "todos").lower().strip()
 
     if canal not in ("TODOS", "BALCAO", "DELIVERY"):
         canal = "TODOS"
     if status not in ("TODOS", "AGUARDANDO_CAIXA", "PENDENTE", "PRONTO", "FECHADO", "CANCELADO"):
         status = "TODOS"
+    if periodo not in ("todos", "dia", "mes", "ano", "intervalo"):
+        periodo = "todos"
 
-    limite = (datetime.now() - timedelta(days=92)).strftime("%Y-%m-%d %H:%M:%S")
+    hoje = datetime.now().strftime("%Y-%m-%d")
+    data_filtro = request.args.get("data") or hoje
+    mes_filtro = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    ano_filtro = request.args.get("ano") or str(datetime.now().year)
+    data_inicio = request.args.get("data_inicio") or hoje
+    data_fim = request.args.get("data_fim") or hoje
+    erro_periodo = ""
+    inicio = fim_exclusivo = None
+
+    try:
+        if periodo == "dia":
+            d = datetime.strptime(data_filtro, "%Y-%m-%d")
+            inicio = d.strftime("%Y-%m-%d 00:00:00")
+            fim_exclusivo = (d + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
+        elif periodo == "mes":
+            d = datetime.strptime(mes_filtro, "%Y-%m")
+            inicio = d.strftime("%Y-%m-01 00:00:00")
+            proximo = datetime(d.year + 1, 1, 1) if d.month == 12 else datetime(d.year, d.month + 1, 1)
+            fim_exclusivo = proximo.strftime("%Y-%m-%d 00:00:00")
+        elif periodo == "ano":
+            ano_num = int(ano_filtro)
+            if ano_num < 2000 or ano_num > 2100:
+                raise ValueError("Ano fora do intervalo permitido.")
+            inicio = f"{ano_num:04d}-01-01 00:00:00"
+            fim_exclusivo = f"{ano_num + 1:04d}-01-01 00:00:00"
+        elif periodo == "intervalo":
+            di = datetime.strptime(data_inicio, "%Y-%m-%d")
+            df = datetime.strptime(data_fim, "%Y-%m-%d")
+            if df < di:
+                raise ValueError("A data final precisa ser igual ou posterior à data inicial.")
+            inicio = di.strftime("%Y-%m-%d 00:00:00")
+            fim_exclusivo = (df + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
+    except (ValueError, TypeError):
+        erro_periodo = "Período inválido. Confira as datas e tente novamente."
+        inicio = fim_exclusivo = None
 
     conn = db_conn()
     cur = conn.cursor()
-
-    where = "WHERE criado_em >= ?"
-    params = [limite]
-
+    where_parts, params = [], []
+    if inicio and fim_exclusivo:
+        where_parts.append("criado_em >= ? AND criado_em < ?")
+        params.extend([inicio, fim_exclusivo])
     if canal != "TODOS":
-        where += " AND canal=?"
+        where_parts.append("canal=?")
         params.append(canal)
-
     if status != "TODOS":
-        where += " AND status=?"
+        where_parts.append("status=?")
         params.append(status)
-
     if q:
         like = f"%{q}%"
-        where += " AND (cliente_nome LIKE ? OR cliente_tel LIKE ? OR endereco LIKE ? OR observacoes LIKE ? OR cliente_bairro LIKE ? OR cliente_numero LIKE ? OR forma_pagamento LIKE ?)"
+        where_parts.append("(cliente_nome LIKE ? OR cliente_tel LIKE ? OR endereco LIKE ? OR observacoes LIKE ? OR cliente_bairro LIKE ? OR cliente_numero LIKE ? OR forma_pagamento LIKE ?)")
         params.extend([like, like, like, like, like, like, like])
+    where = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
 
-    pedidos = cur.execute(f"""
-        SELECT * FROM historico_pedidos
-        {where}
-        ORDER BY id DESC
-        LIMIT 1000
-    """, tuple(params)).fetchall()
+    pedidos = cur.execute(
+        f"SELECT * FROM historico_pedidos {where} ORDER BY criado_em DESC, id DESC LIMIT 5000",
+        tuple(params)
+    ).fetchall()
 
     pedido_itens = {}
     for p in pedidos:
-        itens = cur.execute("SELECT * FROM historico_itens WHERE pedido_id=? ORDER BY id ASC", (p["id"],)).fetchall()
-        pedido_itens[p["id"]] = itens
+        pedido_itens[p["id"]] = cur.execute(
+            "SELECT * FROM historico_itens WHERE pedido_id=? ORDER BY id ASC", (p["id"],)
+        ).fetchall()
 
-    total_periodo = cur.execute(f"""
-        SELECT COALESCE(SUM(total),0) AS t
-        FROM historico_pedidos
-        {where} AND status IN ('PRONTO','FECHADO')
-    """, tuple(params)).fetchone()["t"] or 0
+    produto_rows = cur.execute("""
+        SELECT nome FROM produtos
+        UNION SELECT nome FROM historico_itens
+        ORDER BY nome COLLATE NOCASE
+    """).fetchall()
+    nomes_produtos = [r["nome"] for r in produto_rows if r["nome"]]
+    nomes_validos = set(nomes_produtos)
+    produtos_selecionados = [n for n in request.args.getlist("produtos") if n in nomes_validos]
 
+    item_parts, item_params = [], []
+    if inicio and fim_exclusivo:
+        item_parts.append("p.criado_em >= ? AND p.criado_em < ?")
+        item_params.extend([inicio, fim_exclusivo])
+    if canal != "TODOS":
+        item_parts.append("p.canal=?")
+        item_params.append(canal)
+    if status != "TODOS":
+        item_parts.append("p.status=?")
+        item_params.append(status)
+    if q:
+        like = f"%{q}%"
+        item_parts.append("(p.cliente_nome LIKE ? OR p.cliente_tel LIKE ? OR p.endereco LIKE ? OR p.observacoes LIKE ? OR p.cliente_bairro LIKE ? OR p.cliente_numero LIKE ? OR p.forma_pagamento LIKE ?)")
+        item_params.extend([like, like, like, like, like, like, like])
+    if produtos_selecionados:
+        item_parts.append("i.nome IN (" + ",".join("?" for _ in produtos_selecionados) + ")")
+        item_params.extend(produtos_selecionados)
+    item_where = ("WHERE " + " AND ".join(item_parts)) if item_parts else ""
+
+    resumo_produtos = cur.execute(f"""
+        SELECT i.nome AS nome,
+               SUM(CASE WHEN COALESCE(i.pesado_valor, 0) > 0 THEN 1
+                        ELSE COALESCE(i.quantidade, 1) END) AS quantidade,
+               SUM(CASE WHEN COALESCE(i.pesado_valor, 0) > 0
+                        THEN COALESCE(i.pesado_valor, i.subtotal, 0)
+                        ELSE COALESCE(i.subtotal, 0) END) AS valor
+        FROM historico_itens i
+        JOIN historico_pedidos p ON p.id=i.pedido_id
+        {item_where}
+        GROUP BY i.nome
+        ORDER BY quantidade DESC, i.nome COLLATE NOCASE
+    """, tuple(item_params)).fetchall()
+
+    total_where_parts = list(where_parts)
+    total_where_parts.append("status IN ('PRONTO','FECHADO')")
+    total_periodo = cur.execute(
+        "SELECT COALESCE(SUM(total),0) AS t FROM historico_pedidos WHERE " + " AND ".join(total_where_parts),
+        tuple(params)
+    ).fetchone()["t"] or 0
+    total_unidades = sum(int(row["quantidade"] or 0) for row in resumo_produtos)
     conn.close()
 
     return render_template(
-        "historico.html",
-        nome_estabelecimento=NOME_ESTAB,
-        pedidos=pedidos,
-        pedido_itens=pedido_itens,
-        canal=canal,
-        status=status,
-        q=q,
-        total_periodo=float(total_periodo),
+        "historico.html", nome_estabelecimento=NOME_ESTAB, pedidos=pedidos,
+        pedido_itens=pedido_itens, canal=canal, status=status, q=q,
+        total_periodo=float(total_periodo), periodo=periodo, data_filtro=data_filtro,
+        mes_filtro=mes_filtro, ano_filtro=ano_filtro, data_inicio=data_inicio,
+        data_fim=data_fim, erro_periodo=erro_periodo,
+        produtos_filtro=[{"nome": n} for n in nomes_produtos],
+        produtos_selecionados=produtos_selecionados,
+        resumo_produtos=resumo_produtos, total_unidades=total_unidades,
     )
 
 @app.route("/historico/remover/<int:pedido_id>", methods=["POST"])
