@@ -49,6 +49,7 @@
   <div class="kpi">
     <div class="kpi-card"><div class="kpi-label">Total vendido no período</div><div class="kpi-value">R$ {{ "%.2f"|format(total_periodo) }}</div></div>
     <a class="kpi-card" href="/caixa" style="text-decoration:none;color:inherit"><div class="kpi-label">Voltar</div><div class="kpi-value">↩️ Caixa</div></a>
+    <a class="kpi-card" href="/prato_do_dia" style="text-decoration:none;color:inherit"><div class="kpi-label">Configurações</div><div class="kpi-value">🍛 Cardápio e taxa</div></a>
     <form action="/historico/limpar" method="POST" onsubmit="return confirm('Apagar TODO o histórico? Esta ação não pode ser desfeita.')" style="margin:0"><button class="danger" type="submit" style="height:56px">🧹 Limpar</button></form>
   </div>
 </div></div>
