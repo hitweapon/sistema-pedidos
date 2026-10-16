@@ -348,6 +348,10 @@
   ✏️ Editar pedido
 </a>
 
+            <form action="/caixa/remover_pedido/{{ p.id }}" method="POST" class="ticket-delete-form" onsubmit="return confirm('Excluir definitivamente o pedido #{{ p.id }}? Esta ação não pode ser desfeita.');">
+              <button class="btn btn-delete" type="submit">🗑️ Excluir pedido</button>
+            </form>
+
             {% if p.status == 'AGUARDANDO_CAIXA' %}
               <form action="/caixa/liberar_cozinha/{{ p.id }}" method="POST" style="width:100%;">
                 <button class="btn btn-primary" type="submit">➡️ Liberar p/ cozinha</button>
@@ -375,9 +379,6 @@
               </form>
 
             {% else %}
-              <form action="/caixa/remover_pedido/{{ p.id }}" method="POST" style="width:100%;" onsubmit="return confirm('Remover pedido do histórico?');">
-                <button class="btn btn-ghost" type="submit">🗑️ Remover</button>
-              </form>
               <form action="/caixa/cancelar_pedido/{{ p.id }}" method="POST" style="width:100%;">
                 <button class="btn btn-ghost" type="submit">🚫 Cancelar</button>
               </form>
