@@ -95,9 +95,12 @@
   <div class="card" style="margin-top:14px">
     <h2 style="margin-top:0">📦 Resumo de saída por produto</h2>
     <div class="report-kpis">
-      <div class="report-kpi"><span>Unidades/itens vendidos</span><strong>{{ total_unidades }}</strong></div>
+      <div class="report-kpi"><span>Unidades/itens vendidos{% if produtos_selecionados %} dos produtos selecionados{% endif %}</span><strong>{{ total_unidades }}</strong></div>
       <div class="report-kpi"><span>Produtos diferentes</span><strong>{{ resumo_produtos|length }}</strong></div>
-      <div class="report-kpi"><span>Faturamento de pedidos concluídos</span><strong>R$ {{ "%.2f"|format(total_periodo) }}</strong></div>
+      <div class="report-kpi"><span>Faturamento geral de pedidos concluídos</span><strong>R$ {{ "%.2f"|format(total_periodo) }}</strong></div>
+      {% if produtos_selecionados %}
+      <div class="report-kpi"><span>Faturamento dos produtos selecionados</span><strong>R$ {{ "%.2f"|format(total_produtos_selecionados) }}</strong></div>
+      {% endif %}
     </div>
     <div class="report-wrap"><table class="report-table"><thead><tr><th>Produto</th><th>Quantidade</th><th>Valor dos itens</th></tr></thead><tbody>
       {% for item in resumo_produtos %}<tr><td>{{ item.nome }}</td><td>{{ item.quantidade }}</td><td>R$ {{ "%.2f"|format(item.valor or 0) }}</td></tr>
@@ -106,12 +109,12 @@
     <div class="hint">Itens pesáveis contam como uma ocorrência porque o banco atual guarda o valor, mas não o peso em uma coluna de quantidade.</div>
   </div>
   <div class="card" style="margin-top:14px">
-    <h2 style="margin-top:0">🧾 Pedidos no período</h2>
+    <h2 style="margin-top:0">🧾 {% if produtos_selecionados %}Pedidos que contêm os produtos selecionados{% else %}Pedidos no período{% endif %}</h2>
     {% if pedidos|length == 0 %}<div class="empty-state"><div class="empty-emoji">📦</div><h3>Nenhum pedido encontrado</h3><p>Tente outro período ou ajuste os filtros.</p></div>{% endif %}
     <div class="kitchen-grid">
       {% for p in pedidos %}<div class="ticket">
         <div class="ticket-head"><div><div class="ticket-id">Pedido #{{ p.id }}</div><div class="ticket-badge">{{ p.status }} • {{ p.turno }} • {{ p.canal }}</div></div>
-          <div style="text-align:right"><div style="font-weight:900">R$ {{ "%.2f"|format(p.total or 0) }}</div><form action="/historico/remover/{{ p.id }}" method="POST" onsubmit="return confirm('Remover este pedido do histórico?')" style="margin-top:8px"><button class="btn btn-ghost" type="submit" style="padding:8px 10px">🗑️ Remover</button></form></div>
+          <div style="text-align:right"><div style="font-weight:900">R$ {{ "%.2f"|format(p.total or 0) }}</div><div class="hint">Total do pedido</div><form action="/historico/remover/{{ p.id }}" method="POST" onsubmit="return confirm('Remover este pedido do histórico?')" style="margin-top:8px"><button class="btn btn-ghost" type="submit" style="padding:8px 10px">🗑️ Remover</button></form></div>
         </div>
         <div class="ticket-body"><div class="ticket-title">Dados</div><div style="line-height:1.45">
           <b>Data:</b> {{ p.criado_em }}<br>{% if p.cliente_nome %}<b>Cliente:</b> {{ p.cliente_nome }}<br>{% endif %}{% if p.cliente_tel %}<b>Telefone:</b> {{ p.cliente_tel }}<br>{% endif %}{% if p.endereco %}<b>Endereço:</b> {{ p.endereco }}<br>{% endif %}{% if p.observacoes %}<b>Observações:</b> {{ p.observacoes }}<br>{% endif %}
