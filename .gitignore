@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+.env
+
+# Empacotamento de executável (não faz parte do fluxo web)
+build/
+dist/
+*.spec
+Padaria.exe
+
+# Arquivos locais / temporários
+*.log
+.DS_Store
+Thumbs.db
