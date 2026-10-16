@@ -681,3 +681,74 @@ body.dark .toggle-theme { background: #e8f1ea; color: #17251b; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
+
+
+/* EMPORIO — rework do caixa desktop */
+:root { --emp-orange:#ed6b19; --emp-orange-dark:#c84d08; --emp-ink:#191919; --emp-paper:#fff; --emp-bg:#f3f3f2; --emp-line:#e5e4e2; }
+body { background:var(--emp-bg); color:var(--emp-ink); font-family:"Segoe UI",Arial,sans-serif; }
+.topbar { background:#fff; border-bottom:3px solid var(--emp-orange); box-shadow:0 5px 22px rgba(0,0,0,.055); }
+.topbar-inner { max-width:none; width:100%; padding:12px 28px; gap:24px; }
+.brand-icon { background:var(--emp-orange); border-radius:12px; box-shadow:none; }
+.brand-title { font-size:21px; font-weight:850; letter-spacing:-.5px; }
+.brand-sub { color:#747474; opacity:1; }
+.kpi { gap:8px; }
+.kpi-card { min-width:94px; border:1px solid #eceae7; border-radius:12px; box-shadow:none; padding:9px 13px; }
+.kpi-label { color:#6e6e6e; opacity:1; font-weight:650; }
+.kpi-value { font-size:22px; }
+.container { max-width:none; width:100%; padding:22px 28px 34px; }
+.cashier-container { min-height:calc(100vh - 82px); }
+.cashier-layout { display:grid; grid-template-columns:minmax(360px,.78fr) minmax(560px,1.45fr)!important; gap:20px!important; }
+.cashier-layout > .card { min-width:0; border:1px solid #e7e5e2; border-radius:16px; padding:22px; box-shadow:0 4px 18px rgba(0,0,0,.035); }
+.cashier-layout h2 { font-size:21px; letter-spacing:-.4px; }
+.cashier-controls { border-top:4px solid var(--emp-orange)!important; }
+.cashier-orders { border-top:4px solid #252525!important; }
+.cashier-layout label { display:block; margin:8px 0 5px; font-size:13px; font-weight:750; color:#424242; }
+.cashier-layout input:not([type=checkbox]), .cashier-layout select, .cashier-layout textarea { width:100%; min-height:42px; padding:10px 12px!important; border:1px solid #deddda!important; border-radius:9px!important; background:#fff; color:#222; font:inherit; }
+.cashier-layout input:focus, .cashier-layout select:focus { border-color:var(--emp-orange)!important; box-shadow:0 0 0 3px rgba(237,107,25,.12)!important; }
+.btn { min-height:40px; border-radius:9px; padding:10px 13px; font-weight:750; box-shadow:none; }
+.btn-primary, .total-area button { background:var(--emp-orange); color:white; box-shadow:0 3px 0 var(--emp-orange-dark); }
+.btn-primary:hover, .total-area button:hover { background:var(--emp-orange-dark); }
+.btn-ghost { background:#f2f1ef; color:#292929; border:1px solid #e6e3df; }
+.danger { background:#242424; color:white; border-radius:9px; }
+.app-nav-menu { position:relative; flex-shrink:0; }
+.app-nav-menu > summary { list-style:none; cursor:pointer; border-radius:10px; padding:12px 17px; background:#1d1d1d; color:white; font-weight:800; white-space:nowrap; }
+.app-nav-menu > summary::-webkit-details-marker { display:none; }
+.app-nav-menu[open] > summary { background:var(--emp-orange); }
+.app-nav-dropdown { position:absolute; z-index:100; top:calc(100% + 8px); right:0; width:220px; padding:7px; background:#fff; border:1px solid #e7e5e2; border-radius:13px; box-shadow:0 16px 38px rgba(0,0,0,.15); }
+.app-nav-dropdown a { display:block; padding:12px; border-radius:8px; color:#222; text-decoration:none; font-weight:700; }
+.app-nav-dropdown a:hover { background:#fff0e6; color:var(--emp-orange-dark); }
+.app-nav-dropdown .app-nav-exit { border-top:1px solid #eee; margin-top:5px; color:#a62e22; }
+.orders-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.orders-heading h2 { margin-top:3px; }
+.eyebrow { font-size:11px; letter-spacing:1.4px; color:var(--emp-orange-dark); font-weight:900; }
+.current-filter { background:#fff0e6; color:#a94105; border-radius:999px; padding:7px 12px; font-size:12px; font-weight:850; }
+.new-order-panel { border:1px solid #e6e2dd; border-radius:13px; overflow:hidden; margin-top:20px; background:#fff; }
+.new-order-panel > summary { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px; cursor:pointer; list-style:none; background:#fff8f2; border-bottom:1px solid transparent; }
+.new-order-panel > summary::-webkit-details-marker { display:none; }
+.new-order-panel > summary strong { display:block; font-size:17px; color:#c84d08; }
+.new-order-panel > summary small { display:block; color:#777; margin-top:3px; font-size:12px; }
+.new-order-panel[open] > summary { border-bottom-color:#f0dfd2; }
+.summary-action { color:#8c3908; font-size:12px; font-weight:800; white-space:nowrap; }
+.new-order-panel > form { padding:16px; }
+.cashier-layout details:not(.new-order-panel) { background:#faf9f7; border:1px solid #e8e5e1; border-radius:10px; padding:11px 13px; }
+.cashier-layout details:not(.new-order-panel) > summary { color:#292929; padding:3px 0; }
+.cashier-layout .produto { border-radius:12px; border:1px solid #e7e3de; box-shadow:none; padding:12px; background:#fff; }
+.cashier-layout .produto-img { height:112px; border-radius:9px; background:#f7f5f2; }
+.cashier-layout .produto-preco { color:#c84d08; font-size:19px; }
+.cashier-layout .ticket { margin-top:14px!important; border:1px solid #e5e3df; border-radius:13px; box-shadow:none; overflow:hidden; }
+.cashier-layout .ticket-head { background:#faf9f7; border-bottom:1px solid #ebe8e4; }
+.cashier-layout .ticket-badge { display:inline-block; margin-top:6px; background:#fff0e6; color:#a94105; border-radius:6px; padding:5px 8px; font-size:11px; font-weight:900; }
+.cashier-layout .ticket-body { padding:16px; }
+.cashier-layout .ticket-actions { display:flex; flex-wrap:wrap; background:#fcfbfa; gap:8px; }
+.cashier-layout .ticket-actions form, .cashier-layout .ticket-actions a { flex:1 1 155px; width:auto!important; }
+.cashier-layout .ticket-actions .btn { width:100%; }
+.cashier-layout .empty-state { box-shadow:none; border:1px dashed #ded9d3; }
+.cashier-layout hr { border:0; border-top:1px solid #ece8e3; opacity:1!important; }
+@media (min-width:1100px) {
+ .cashier-layout .ticket-itens { columns:1; }
+}
+@media (max-width:1200px) {
+ .topbar-inner { flex-wrap:wrap; }
+ .kpi { flex-wrap:wrap; }
+ .cashier-layout { grid-template-columns:minmax(320px,.8fr) minmax(460px,1.2fr)!important; }
+}
