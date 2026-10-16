@@ -619,6 +619,18 @@ def ensure_schema():
     """)
 
     cur.execute("""
+    CREATE TABLE IF NOT EXISTS clientes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        telefone TEXT DEFAULT '',
+        endereco TEXT DEFAULT '',
+        numero TEXT DEFAULT '',
+        bairro TEXT DEFAULT '',
+        criado_em TEXT
+    )
+    """)
+
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS itens_pedido(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pedido_id INTEGER NOT NULL,
@@ -665,6 +677,8 @@ def ensure_schema():
     )
     """)
 
+    _ensure_column(conn, "pedidos", "cliente_id", "INTEGER")
+    _ensure_column(conn, "historico_pedidos", "cliente_id", "INTEGER")
     _ensure_column(conn, "pedidos", "cliente_numero", "TEXT")
     _ensure_column(conn, "pedidos", "cliente_bairro", "TEXT")
     _ensure_column(conn, "historico_pedidos", "cliente_numero", "TEXT")
@@ -1087,6 +1101,31 @@ def toggle_produto(pid):
     conn.close()
     return redirect("/admin")
 
+@app.route("/clientes/criar", methods=["POST"])
+@login_required
+def clientes_criar():
+    dados = request.get_json(silent=True) if request.is_json else request.form
+    nome = (dados.get("nome") or "").strip()
+    telefone = (dados.get("telefone") or "").strip()
+    endereco = (dados.get("endereco") or "").strip()
+    numero = (dados.get("numero") or "").strip()
+    bairro = (dados.get("bairro") or "").strip()
+    if not nome:
+        if request.is_json:
+            return {"ok": False, "erro": "Informe o nome do cliente."}, 400
+        return redirect("/caixa?cliente_erro=nome")
+    conn = db_conn()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO clientes (nome, telefone, endereco, numero, bairro, criado_em) VALUES (?, ?, ?, ?, ?, ?)",
+                (nome, telefone, endereco, numero, bairro, now_str()))
+    cliente_id = cur.lastrowid
+    conn.commit()
+    cliente = dict(cur.execute("SELECT * FROM clientes WHERE id=?", (cliente_id,)).fetchone())
+    conn.close()
+    if request.is_json:
+        return {"ok": True, "cliente": cliente}
+    return redirect("/caixa?cliente_criado=1")
+
 # =====================
 # CAIXA
 # =====================
@@ -1151,6 +1190,10 @@ def caixa():
 
     conn.close()
 
+    conn_clientes = db_conn()
+    clientes = conn_clientes.execute("SELECT * FROM clientes ORDER BY nome COLLATE NOCASE").fetchall()
+    conn_clientes.close()
+
     prato1, prato2 = get_prato_do_dia_opts()
 
     return render_template(
@@ -1158,6 +1201,7 @@ def caixa():
         nome_estabelecimento=NOME_ESTAB,
         turno=turno,
         filtro=filtro,
+        clientes=clientes,
         categorias=categorias,
         produtos_por_categoria=produtos_por_categoria,
         produtos_sem_categoria=produtos_sem_categoria,
@@ -1185,11 +1229,23 @@ def caixa_criar_pedido():
     if destino not in ("COZINHA", "BALCAO"):
         destino = "COZINHA"
 
+    cliente_id_raw = (request.form.get("cliente_id") or "").strip()
+    cliente_id = int(cliente_id_raw) if cliente_id_raw.isdigit() else None
     cliente_nome = (request.form.get("cliente_nome") or "").strip()
     cliente_tel = (request.form.get("cliente_tel") or "").strip()
     endereco = (request.form.get("endereco") or "").strip()
     cliente_numero = (request.form.get("cliente_numero") or "").strip()
     cliente_bairro = (request.form.get("cliente_bairro") or "").strip()
+    if cliente_id:
+        lookup = db_conn()
+        saved = lookup.execute("SELECT * FROM clientes WHERE id=?", (cliente_id,)).fetchone()
+        lookup.close()
+        if saved:
+            cliente_nome = cliente_nome or saved["nome"]
+            cliente_tel = cliente_tel or saved["telefone"] or ""
+            endereco = endereco or saved["endereco"] or ""
+            cliente_numero = cliente_numero or saved["numero"] or ""
+            cliente_bairro = cliente_bairro or saved["bairro"] or ""
     observacoes = (request.form.get("observacoes") or "").strip()
 
     # >>> NOVO: forma de pagamento
@@ -1201,13 +1257,13 @@ def caixa_criar_pedido():
     cur.execute("""
         INSERT INTO pedidos (
           criado_em, turno, status, destino, canal,
-          cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
+          cliente_id, cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
           observacoes, total, forma_pagamento
         )
-        VALUES (?, ?, 'AGUARDANDO_CAIXA', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        VALUES (?, ?, 'AGUARDANDO_CAIXA', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
     """, (
         now_str(), turno, destino, canal,
-        cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
+        cliente_id, cliente_nome, cliente_tel, endereco, cliente_numero, cliente_bairro,
         observacoes, forma_pagamento
     ))
     pedido_id = cur.lastrowid
