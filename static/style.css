@@ -970,3 +970,39 @@ body.order-modal-open{overflow:hidden!important;height:100%!important;overscroll
 .new-order-panel.is-open .delivery-fee-toggle>span:last-child{font-size:12px;font-weight:900;color:#8f3d0c}
 .new-order-panel.is-open .delivery-fee-toggle input:disabled+.delivery-fee-switch{background:#d7d0ca;opacity:.65}
 @media(max-width:700px){.new-order-panel.is-open .delivery-fee-choice{align-items:flex-start;flex-direction:column}.new-order-panel.is-open .delivery-fee-toggle{white-space:normal}}
+
+
+/* Compact product filters: one category dropdown instead of a row of dozens of pills. */
+.new-order-panel.is-open .cashier-product-filter-row{
+  display:flex;align-items:end;justify-content:space-between;gap:14px;
+  margin:0 0 12px;padding:10px 12px;background:#fff8f2;
+  border:1px solid #f0dfd2;border-radius:12px;
+}
+.new-order-panel.is-open .cashier-product-filter-row>label{
+  display:flex;align-items:center;gap:10px;margin:0!important;
+  color:#6d5140;font-size:12px;font-weight:850;min-width:260px;flex:1;
+}
+.new-order-panel.is-open #filtroCategoriaCaixa{
+  flex:1;min-width:0;width:100%;min-height:39px;padding:8px 12px;
+  border:1px solid #e5d9ce;border-radius:9px;background:#fff;color:#28231f;font:inherit;
+}
+.new-order-panel.is-open .cashier-product-filter-hint{font-size:11px;color:#8b7a6d;text-align:right}
+.new-order-panel.is-open .delivery-fee-choice{position:relative}
+.new-order-panel.is-open .delivery-fee-toggle input[type=checkbox]{
+  position:static!important;opacity:1!important;width:19px!important;height:19px!important;
+  min-height:19px!important;accent-color:#ed6b19;cursor:pointer;flex:0 0 auto;
+}
+.new-order-panel.is-open .delivery-fee-toggle:has(input:disabled){opacity:.65;cursor:not-allowed}
+.new-order-panel.is-open .delivery-fee-toggle:has(input:disabled) input{cursor:not-allowed}
+.new-order-panel.is-open .delivery-fee-toggle:not(:has(input:disabled)){cursor:pointer}
+.new-order-panel.is-open .delivery-fee-settings-link{
+  align-self:center;white-space:nowrap;color:#a94105;background:#fff;
+  border:1px solid #efd5c1;border-radius:9px;padding:9px 11px;font-size:11px;font-weight:900;text-decoration:none;
+}
+.new-order-panel.is-open .delivery-fee-settings-link:hover{background:#fff0e6}
+@media(max-width:700px){
+ .new-order-panel.is-open .cashier-product-filter-row{align-items:stretch;flex-direction:column}
+ .new-order-panel.is-open .cashier-product-filter-row>label{align-items:stretch;flex-direction:column;min-width:0}
+ .new-order-panel.is-open .cashier-product-filter-hint{text-align:left}
+ .new-order-panel.is-open .delivery-fee-choice{align-items:flex-start;flex-direction:column}
+}
