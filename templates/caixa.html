@@ -175,7 +175,7 @@
         <h3 style="margin-bottom:10px;">Itens (normais)</h3>
 
         {% for c in categorias %}
-          <details style="margin-bottom:10px;">
+          <details class="cashier-category-panel" data-category-panel="{{ c.id }}" style="margin-bottom:10px;">
             <summary style="font-weight:900; cursor:pointer;">{{ c.nome }}</summary>
             <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
               {% for p in produtos_por_categoria[c.id] %}
@@ -200,7 +200,7 @@
         {% endfor %}
 
         {% if produtos_sem_categoria %}
-          <details style="margin-bottom:10px;">
+          <details class="cashier-category-panel" data-category-panel="none" style="margin-bottom:10px;">
             <summary style="font-weight:900; cursor:pointer;">Sem categoria</summary>
             <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
               {% for p in produtos_sem_categoria %}
@@ -414,14 +414,19 @@
       card.hidden = !(categoryMatch && nameMatch);
       card.style.display = card.hidden ? 'none' : 'flex';
     });
-    const categoryPanels = Array.from(document.querySelectorAll('.new-order-panel form#formNovoPedido > details'));
+    const categoryPanels = Array.from(document.querySelectorAll('.cashier-category-panel'));
+    const filterIsActive = query !== '' || activeCategory !== 'all';
     categoryPanels.forEach(panel => {
       const panelCards = Array.from(panel.querySelectorAll('.cashier-product-card'));
-      if(!panelCards.length) return;
+      const categoryMatches = activeCategory === 'all' || panel.dataset.categoryPanel === activeCategory;
       const hasVisible = panelCards.some(card => !card.hidden);
-      panel.hidden = !hasVisible;
-      if(hasVisible && (query || activeCategory !== 'all')) panel.open = true;
-      else if(!query && activeCategory === 'all') panel.open = false;
+      // Em busca/filtro, só mostra categorias que realmente contêm resultados.
+      // Isso também esconde categorias sem produtos normais, que antes escapavam do filtro.
+      const shouldShow = !filterIsActive || (categoryMatches && hasVisible);
+      panel.hidden = !shouldShow;
+      panel.classList.toggle('category-hidden-by-filter', !shouldShow);
+      if (filterIsActive && shouldShow) panel.open = true;
+      else if (!filterIsActive) panel.open = false;
     });
   }
   productSearch?.addEventListener('input', filterCashierProducts);
@@ -527,6 +532,13 @@
   deliverySelect?.addEventListener('change', updateDeliveryControls);
   updateDeliveryControls();
   updateWalkinMode();
+
+  const orderModal = document.querySelector('.new-order-panel');
+  function syncOrderModalScroll(){
+    document.body.classList.toggle('order-modal-open', Boolean(orderModal?.open));
+  }
+  orderModal?.addEventListener('toggle', syncOrderModalScroll);
+  syncOrderModalScroll();
 
   const socket = io();
   socket.on("pedido_caixa_novo", () => { location.reload(); });
