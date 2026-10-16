@@ -405,8 +405,17 @@
       const categoryMatch = activeCategory === 'all' || card.dataset.category === activeCategory;
       const nameMatch = (card.dataset.productName || '').toLocaleLowerCase('pt-BR').includes(query);
       card.hidden = !(categoryMatch && nameMatch);
+      card.style.display = card.hidden ? 'none' : 'flex';
     });
-    document.querySelectorAll('.cashier-product-card').forEach(card => { if(card.hidden) card.style.display='none'; else card.style.display='flex'; });
+    const categoryPanels = Array.from(document.querySelectorAll('.new-order-panel form#formNovoPedido > details'));
+    categoryPanels.forEach(panel => {
+      const panelCards = Array.from(panel.querySelectorAll('.cashier-product-card'));
+      if(!panelCards.length) return;
+      const hasVisible = panelCards.some(card => !card.hidden);
+      panel.hidden = !hasVisible;
+      if(hasVisible && (query || activeCategory !== 'all')) panel.open = true;
+      else if(!query && activeCategory === 'all') panel.open = false;
+    });
   }
   productSearch?.addEventListener('input', filterCashierProducts);
   categoryTabs?.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
