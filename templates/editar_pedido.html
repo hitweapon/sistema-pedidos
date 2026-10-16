@@ -1,103 +1,304 @@
 <!DOCTYPE html>
-
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Editar Pedido</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar pedido #{{ pedido.id }} • {{ nome_estabelecimento }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+<body class="edit-order-body">
+  <header class="topbar edit-order-topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-icon">✏️</div>
+        <div>
+          <div class="brand-title">Editar pedido #{{ pedido.id }}</div>
+          <div class="brand-sub">{{ nome_estabelecimento }}</div>
+        </div>
+      </div>
+      <div class="edit-topbar-actions">
+        <span class="edit-status-pill">{{ pedido.status|replace("_", " ") }}</span>
+        <a href="/caixa" class="btn btn-ghost edit-back-button">← Voltar ao caixa</a>
+      </div>
+    </div>
+  </header>
 
-<body>
+  <main class="container edit-order-container">
+    <section class="edit-order-hero">
+      <div>
+        <span class="edit-eyebrow">GERENCIAMENTO DE VENDA</span>
+        <h1>Pedido #{{ pedido.id }}</h1>
+        <p>Altere os dados, ajuste os produtos e salve para atualizar o pedido no caixa.</p>
+        <div class="edit-order-tags">
+          <span>{{ "Entrega" if pedido.canal == "DELIVERY" else "Balcão" }}</span>
+          <span>{{ "Cozinha" if pedido.destino == "COZINHA" else "Não vai para a cozinha" }}</span>
+          <span>Turno {{ pedido.turno }}</span>
+        </div>
+      </div>
+      <div class="edit-hero-total">
+        <span>Total atual</span>
+        <strong>R$ {{ "%.2f"|format(pedido.total or 0) }}</strong>
+        {% if pedido.taxa_entrega and pedido.taxa_entrega > 0 %}
+          <small>Inclui R$ {{ "%.2f"|format(pedido.taxa_entrega) }} de entrega</small>
+        {% else %}
+          <small>Sem taxa de entrega</small>
+        {% endif %}
+      </div>
+    </section>
 
-<div class="container">
-  <h2>✏️ Editando Pedido #{{ pedido.id }}</h2>
-
-  <form method="POST" action="/caixa/editar_pedido/{{ pedido.id }}">
-
-```
-<!-- CLIENTE -->
-<div class="card">
-  <h3>👤 Cliente</h3>
-
-  <input type="text" name="cliente_nome" placeholder="Nome"
-         value="{{ pedido.cliente_nome or '' }}">
-
-  <input type="text" name="cliente_tel" placeholder="Telefone"
-         value="{{ pedido.cliente_tel or '' }}">
-
-  <input type="text" name="endereco" placeholder="Rua"
-         value="{{ pedido.endereco or '' }}">
-
-  <div class="grid" style="grid-template-columns: 1fr 1fr;">
-    <input type="text" name="cliente_numero" placeholder="Número"
-           value="{{ pedido.cliente_numero or '' }}">
-    <input type="text" name="cliente_bairro" placeholder="Bairro"
-           value="{{ pedido.cliente_bairro or '' }}">
-  </div>
-
-  <input type="text" name="observacoes" placeholder="Observações"
-         value="{{ pedido.observacoes or '' }}">
-</div>
-
-<!-- PAGAMENTO -->
-<div class="card">
-  <h3>💳 Pagamento</h3>
-
-  <select name="forma_pagamento">
-    <option value="DINHEIRO" {% if pedido.forma_pagamento=='DINHEIRO' %}selected{% endif %}>Dinheiro</option>
-    <option value="PIX" {% if pedido.forma_pagamento=='PIX' %}selected{% endif %}>Pix</option>
-    <option value="DEBITO" {% if pedido.forma_pagamento=='DEBITO' %}selected{% endif %}>Débito</option>
-    <option value="CREDITO" {% if pedido.forma_pagamento=='CREDITO' %}selected{% endif %}>Crédito</option>
-    <option value="VALE" {% if pedido.forma_pagamento=='VALE' %}selected{% endif %}>Vale</option>
-  </select>
-</div>
-
-<!-- ITENS -->
-<div class="card">
-  <h3>🛒 Itens</h3>
-
-  {% set itens_ids = [] %}
-  {% for it in itens %}
-    {% set _ = itens_ids.append(it.produto_id) %}
-  {% endfor %}
-
-  {% for c in categorias %}
-    <details open style="margin-bottom:10px;">
-      <summary style="font-weight:900;">{{ c.nome }}</summary>
-
-      <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top:10px;">
-        {% for p in produtos_por_categoria[c.id] %}
-          <div class="produto">
-
-            <div style="font-weight:900;">{{ p.nome }}</div>
-            <div>R$ {{ "%.2f"|format(p.preco or 0) }}</div>
-
-            <div style="display:flex; gap:10px; align-items:center;">
-              <input type="checkbox" name="item_id"
-                     value="{{ p.id }}"
-                     {% if p.id in itens_ids %}checked{% endif %}>
-
-              <input type="number"
-                     name="qtd_{{ p.id }}"
-                     value="{% for it in itens %}{% if it.produto_id==p.id %}{{ it.quantidade }}{% endif %}{% endfor %}"
-                     min="1">
+    <form method="POST" action="/caixa/editar_pedido/{{ pedido.id }}" id="formEditarPedido">
+      <div class="edit-order-layout">
+        <div class="edit-order-side">
+          <section class="card edit-order-card">
+            <div class="edit-card-heading">
+              <span class="edit-heading-icon">01</span>
+              <div><h2>Dados do pedido</h2><p>Cliente, destino e pagamento.</p></div>
             </div>
 
+            <div class="edit-fields-grid">
+              <div class="edit-field edit-field-wide">
+                <label for="cliente_nome">Nome do cliente</label>
+                <input id="cliente_nome" type="text" name="cliente_nome" value="{{ pedido.cliente_nome or '' }}" placeholder="Nome avulso ou cliente cadastrado">
+              </div>
+              <div class="edit-field">
+                <label for="cliente_tel">Telefone</label>
+                <input id="cliente_tel" type="text" name="cliente_tel" value="{{ pedido.cliente_tel or '' }}" placeholder="Telefone">
+              </div>
+              <div class="edit-field edit-field-wide">
+                <label for="endereco">Rua / endereço</label>
+                <input id="endereco" type="text" name="endereco" value="{{ pedido.endereco or '' }}" placeholder="Endereço para entrega">
+              </div>
+              <div class="edit-field">
+                <label for="cliente_numero">Número</label>
+                <input id="cliente_numero" type="text" name="cliente_numero" value="{{ pedido.cliente_numero or '' }}" placeholder="Nº">
+              </div>
+              <div class="edit-field">
+                <label for="cliente_bairro">Bairro</label>
+                <input id="cliente_bairro" type="text" name="cliente_bairro" value="{{ pedido.cliente_bairro or '' }}" placeholder="Bairro">
+              </div>
+              <div class="edit-field">
+                <label for="canalEditar">Canal</label>
+                <select name="canal" id="canalEditar">
+                  <option value="BALCAO" {% if pedido.canal == "BALCAO" %}selected{% endif %}>Balcão / retirada</option>
+                  <option value="DELIVERY" {% if pedido.canal == "DELIVERY" %}selected{% endif %}>Delivery / entrega</option>
+                </select>
+              </div>
+              <div class="edit-field">
+                <label for="destinoEditar">Destino</label>
+                <select name="destino" id="destinoEditar">
+                  <option value="COZINHA" {% if pedido.destino == "COZINHA" %}selected{% endif %}>Cozinha</option>
+                  <option value="BALCAO" {% if pedido.destino == "BALCAO" %}selected{% endif %}>Não vai para a cozinha</option>
+                </select>
+              </div>
+              <div class="edit-field edit-field-wide">
+                <label for="pagamentoEditar">Forma de pagamento</label>
+                <select name="forma_pagamento" id="pagamentoEditar">
+                  <option value="DINHEIRO" {% if pedido.forma_pagamento == "DINHEIRO" %}selected{% endif %}>Dinheiro</option>
+                  <option value="PIX" {% if pedido.forma_pagamento == "PIX" %}selected{% endif %}>Pix</option>
+                  <option value="DEBITO" {% if pedido.forma_pagamento == "DEBITO" %}selected{% endif %}>Cartão de débito</option>
+                  <option value="CREDITO" {% if pedido.forma_pagamento == "CREDITO" %}selected{% endif %}>Cartão de crédito</option>
+                  <option value="VALE" {% if pedido.forma_pagamento == "VALE" %}selected{% endif %}>Vale</option>
+                  {% if pedido.forma_pagamento and pedido.forma_pagamento not in ["DINHEIRO", "PIX", "DEBITO", "CREDITO", "VALE"] %}
+                    <option value="{{ pedido.forma_pagamento }}" selected>{{ pedido.forma_pagamento }}</option>
+                  {% endif %}
+                </select>
+              </div>
+            </div>
+
+            <div class="edit-delivery-fee" id="editDeliveryFee" {% if pedido.canal != "DELIVERY" %}hidden{% endif %}>
+              <div>
+                <strong>Taxa de entrega</strong>
+                <small>Valor que será somado: R$ <span id="editFeeText">{{ "%.2f"|format((pedido.taxa_entrega or 0) if (pedido.taxa_entrega or 0) > 0 else taxa_entrega_configurada) }}</span></small>
+              </div>
+              <label class="edit-fee-check">
+                <input type="checkbox" name="cobrar_taxa" id="cobrarTaxaEditar" value="1" data-configured="{{ taxa_entrega_configurada }}" data-existing="{{ pedido.taxa_entrega or 0 }}" {% if pedido.taxa_entrega and pedido.taxa_entrega > 0 %}checked{% endif %}>
+                <span>Aplicar taxa</span>
+              </label>
+            </div>
+
+            <div class="edit-field edit-observations">
+              <label for="observacoes">Observações do pedido</label>
+              <textarea name="observacoes" id="observacoes" rows="3" placeholder="Ex.: sem cebola, tirar maionese...">{{ pedido.observacoes or '' }}</textarea>
+            </div>
+          </section>
+
+          <section class="card edit-order-total-card">
+            <div class="edit-card-heading">
+              <span class="edit-heading-icon">R$</span>
+              <div><h2>Resumo da venda</h2><p>Atualiza conforme você muda os itens.</p></div>
+            </div>
+            <div class="edit-total-line"><span>Produtos</span><strong id="editItemsTotal">R$ 0,00</strong></div>
+            <div class="edit-total-line"><span>Taxa de entrega</span><strong id="editFeeTotal">R$ 0,00</strong></div>
+            <div class="edit-total-grand"><span>Total do pedido</span><strong id="editOrderTotal">R$ {{ "%.2f"|format(pedido.total or 0) }}</strong></div>
+            <p class="edit-total-hint">O total salvo inclui os produtos selecionados e a taxa marcada acima.</p>
+          </section>
+        </div>
+
+        <section class="card edit-order-card edit-products-card">
+          <div class="edit-card-heading">
+            <span class="edit-heading-icon">02</span>
+            <div><h2>Produtos do pedido</h2><p>Pesquise ou filtre por categoria para localizar rapidamente.</p></div>
+            <span class="edit-selected-count" id="editSelectedCount">0 itens</span>
           </div>
-        {% endfor %}
+
+          <input class="edit-product-search" type="search" id="editProductSearch" placeholder="🔎 Buscar produto pelo nome..." autocomplete="off">
+          <div class="edit-category-tabs" id="editCategoryTabs">
+            <button type="button" class="active" data-category="all">Todos</button>
+            {% for c in categorias %}<button type="button" data-category="{{ c.id }}">{{ c.nome }}</button>{% endfor %}
+            {% if produtos_sem_categoria %}<button type="button" data-category="none">Sem categoria</button>{% endif %}
+          </div>
+
+          <div id="editProductPanels">
+            {% for c in categorias %}
+              {% set ns = namespace(has_selected=false) %}
+              {% for p in produtos_por_categoria[c.id] %}
+                {% if item_por_produto.get(p.id) %}{% set ns.has_selected = true %}{% endif %}
+              {% endfor %}
+              <details class="edit-category-panel" data-category-panel="{{ c.id }}" {% if ns.has_selected %}open{% endif %}>
+                <summary><span>{{ c.nome }}</span><small>{{ produtos_por_categoria[c.id]|length }} produtos</small></summary>
+                <div class="edit-product-grid">
+                  {% for p in produtos_por_categoria[c.id] %}
+                    {% set item = item_por_produto.get(p.id) %}
+                    <article class="edit-product-card" data-category="{{ c.id }}" data-product-name="{{ p.nome|lower }}" data-price="{{ p.preco or 0 }}" data-weighed="{{ p.pesado or 0 }}">
+                      <div class="edit-product-info">
+                        <span class="edit-product-category">{{ c.nome }}</span>
+                        <strong>{{ p.nome }}</strong>
+                        {% if p.ativo == 0 %}<span class="edit-product-inactive">Produto inativo (já estava neste pedido)</span>{% endif %}
+                        {% if p.pesado == 1 %}<span class="edit-product-price">Valor livre</span>{% else %}<span class="edit-product-price">R$ {{ "%.2f"|format(p.preco or 0) }}</span>{% endif %}
+                      </div>
+                      {% if p.pesado == 1 %}
+                        <label class="edit-product-select"><input type="checkbox" name="pesado_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) > 0 %}checked{% endif %}><span>Incluir</span></label>
+                        <label class="edit-quantity-label">Valor (R$)<input type="number" step="0.01" min="0" name="valor_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) > 0 %}{{ "%.2f"|format(item.pesado_valor) }}{% endif %}" placeholder="0,00"></label>
+                      {% else %}
+                        <label class="edit-product-select"><input type="checkbox" name="item_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) == 0 %}checked{% endif %}><span>Incluir</span></label>
+                        <label class="edit-quantity-label">Quantidade<input type="number" min="1" step="1" name="qtd_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) == 0 %}{{ item.quantidade }}{% else %}1{% endif %}"></label>
+                      {% endif %}
+                    </article>
+                  {% endfor %}
+                </div>
+              </details>
+            {% endfor %}
+
+            {% if produtos_sem_categoria %}
+              {% set ns = namespace(has_selected=false) %}
+              {% for p in produtos_sem_categoria %}
+                {% if item_por_produto.get(p.id) %}{% set ns.has_selected = true %}{% endif %}
+              {% endfor %}
+              <details class="edit-category-panel" data-category-panel="none" {% if ns.has_selected %}open{% endif %}>
+                <summary><span>Sem categoria</span><small>{{ produtos_sem_categoria|length }} produtos</small></summary>
+                <div class="edit-product-grid">
+                  {% for p in produtos_sem_categoria %}
+                    {% set item = item_por_produto.get(p.id) %}
+                    <article class="edit-product-card" data-category="none" data-product-name="{{ p.nome|lower }}" data-price="{{ p.preco or 0 }}" data-weighed="{{ p.pesado or 0 }}">
+                      <div class="edit-product-info">
+                        <span class="edit-product-category">Sem categoria</span><strong>{{ p.nome }}</strong>
+                        {% if p.ativo == 0 %}<span class="edit-product-inactive">Produto inativo (já estava neste pedido)</span>{% endif %}
+                        <span class="edit-product-price">{% if p.pesado == 1 %}Valor livre{% else %}R$ {{ "%.2f"|format(p.preco or 0) }}{% endif %}</span>
+                      </div>
+                      {% if p.pesado == 1 %}
+                        <label class="edit-product-select"><input type="checkbox" name="pesado_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) > 0 %}checked{% endif %}><span>Incluir</span></label>
+                        <label class="edit-quantity-label">Valor (R$)<input type="number" step="0.01" min="0" name="valor_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) > 0 %}{{ "%.2f"|format(item.pesado_valor) }}{% endif %}" placeholder="0,00"></label>
+                      {% else %}
+                        <label class="edit-product-select"><input type="checkbox" name="item_id" value="{{ p.id }}" {% if item and (item.pesado_valor or 0) == 0 %}checked{% endif %}><span>Incluir</span></label>
+                        <label class="edit-quantity-label">Quantidade<input type="number" min="1" step="1" name="qtd_{{ p.id }}" value="{% if item and (item.pesado_valor or 0) == 0 %}{{ item.quantidade }}{% else %}1{% endif %}"></label>
+                      {% endif %}
+                    </article>
+                  {% endfor %}
+                </div>
+              </details>
+            {% endif %}
+          </div>
+          <div class="edit-no-products" id="editNoProducts" hidden>Nenhum produto encontrado. Tente outro nome ou categoria.</div>
+        </section>
       </div>
-    </details>
-  {% endfor %}
 
-</div>
+      <div class="edit-order-actions">
+        <a href="/caixa" class="btn btn-ghost">Cancelar alterações</a>
+        <button type="submit" class="btn btn-primary">💾 Salvar pedido</button>
+      </div>
+    </form>
+  </main>
 
-<button class="btn btn-primary" style="margin-top:15px;">
-  💾 Salvar alterações
-</button>
-```
+<script>
+(function(){
+  const form=document.getElementById('formEditarPedido');
+  const search=document.getElementById('editProductSearch');
+  const tabs=document.getElementById('editCategoryTabs');
+  const cards=Array.from(document.querySelectorAll('.edit-product-card'));
+  const panels=Array.from(document.querySelectorAll('.edit-category-panel'));
+  let activeCategory='all';
+  const channel=document.getElementById('canalEditar');
+  const feeBox=document.getElementById('editDeliveryFee');
+  const feeCheck=document.getElementById('cobrarTaxaEditar');
 
-  </form>
-</div>
+  function money(v){
+    return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
+  }
+  function filterProducts(){
+    const q=(search.value||'').trim().toLocaleLowerCase('pt-BR');
+    const filtering=!!q || activeCategory!=='all';
+    cards.forEach(card=>{
+      const catOk=activeCategory==='all'||card.dataset.category===activeCategory;
+      const nameOk=(card.dataset.productName||'').toLocaleLowerCase('pt-BR').includes(q);
+      card.hidden=!(catOk&&nameOk);
+    });
+    panels.forEach(panel=>{
+      const panelCards=Array.from(panel.querySelectorAll('.edit-product-card'));
+      const matching=panelCards.some(card=>!card.hidden);
+      const catOk=activeCategory==='all'||panel.dataset.categoryPanel===activeCategory;
+      panel.hidden=filtering&&(!catOk||!matching);
+      if(filtering&&catOk&&matching) panel.open=true;
+      else if(!filtering){
+        panel.open=panelCards.some(card=>card.querySelector('input[type="checkbox"]')?.checked);
+      }
+    });
+    document.getElementById('editNoProducts').hidden=cards.filter(card=>!card.hidden).length!==0;
+  }
+  tabs.querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
+    activeCategory=button.dataset.category||'all';
+    tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));
+    filterProducts();
+  }));
+  search.addEventListener('input',filterProducts);
 
+  function updateSummary(){
+    let itemsTotal=0, selectedCount=0;
+    form.querySelectorAll('input[name="item_id"]:checked').forEach(check=>{
+      const card=check.closest('.edit-product-card');
+      const qtyInput=card.querySelector('input[name^="qtd_"]');
+      const qty=Math.max(1,parseInt(qtyInput?.value||'1',10)||1);
+      itemsTotal+=(Number(card.dataset.price)||0)*qty;
+      selectedCount++;
+    });
+    form.querySelectorAll('input[name="pesado_id"]:checked').forEach(check=>{
+      const card=check.closest('.edit-product-card');
+      const value=Number(card.querySelector('input[name^="valor_"]')?.value||0);
+      if(value>0) itemsTotal+=value;
+      selectedCount++;
+    });
+    const delivery=channel.value==='DELIVERY';
+    if(feeBox) feeBox.hidden=!delivery;
+    let fee=0;
+    if(delivery&&feeCheck?.checked){
+      const previous=Number(feeCheck.dataset.existing||0);
+      const configured=Number(feeCheck.dataset.configured||0);
+      fee=previous>0?previous:configured;
+    }
+    document.getElementById('editItemsTotal').textContent=money(itemsTotal);
+    document.getElementById('editFeeTotal').textContent=money(fee);
+    document.getElementById('editOrderTotal').textContent=money(itemsTotal+fee);
+    document.getElementById('editSelectedCount').textContent=selectedCount+' '+(selectedCount===1?'item':'itens');
+    const feeText=document.getElementById('editFeeText');
+    if(feeText) feeText.textContent=money(fee).replace('R$','').trim();
+  }
+  form.addEventListener('change',updateSummary);
+  form.addEventListener('input',event=>{
+    if(event.target.matches('input[name^="qtd_"],input[name^="valor_"]')) updateSummary();
+  });
+  channel.addEventListener('change',updateSummary);
+  filterProducts();
+  updateSummary();
+})();
+</script>
 </body>
 </html>
